@@ -382,7 +382,7 @@ console.error(err)
 if (opts["queque"] && m.text) {
 const quequeIndex = this.msgqueque.push(m.id || m.key.id)
 if (this.msgqueque.length > 1000) {
-  this.msgqueque.splice(0, 500)
+this.msgqueque.splice(0, 500)
 }
 if (quequeIndex !== -1)
 this.msgqueque.splice(quequeIndex, 1)
