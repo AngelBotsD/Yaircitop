@@ -52,12 +52,10 @@ const handler = async (msg, { conn, wa }) => {
     await conn.sendMessage(
   m.chat,
   {
-    text: `⚠️ Envía o responde a una imagen o video con ${pref}s para crear un sticker.`
-  },
-  {
-    quoted: msg,
-    ...global.rcanal
-  }
+    { text: `⚠️ Envía o responde a una imagen o video con ${pref}s para crear un sticker.`, ...global.rcanal },  
+  { quoted: msg }  
+);
+
 }
 
   try {
