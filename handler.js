@@ -19,6 +19,7 @@ const delay = ms => new Promise(r => setTimeout(r, ms))
 /* ========= CACHE GLOBAL ========= */
 global.processedMessages ||= new Set()
 global.groupCache ||= new Map()
+global.adminCache ||= new Map()
 global.ownerCache ||= new Set(global.owner.map(v => v.replace(/\D/g, "") + "@lid"))
 global.premsCache ||= new Set(global.prems.map(v => v.replace(/\D/g, "") + "@lid"))
 
@@ -104,7 +105,7 @@ export async function handler(chatUpdate) {
 
   if (m.isBaileys) return
 
-  /* ========= GRUPOS ========= */
+  /* ========= GRUPOS (MEJORA SPEED) ========= */
   let groupMetadata = {}
   let participants = []
   let isAdmin = false
@@ -115,9 +116,12 @@ export async function handler(chatUpdate) {
 
   if (m.isGroup) {
     const cached = global.groupCache.get(m.chat)
+    const needsGroup =
+      [...Object.values(global.plugins)].some(p => p?.admin || p?.botAdmin || p?.group || p?.detect)
+
     if (cached && Date.now() - cached.time < 60000) {
       groupMetadata = cached.data
-    } else {
+    } else if (needsGroup) {
       groupMetadata = await this.groupMetadata(m.chat)
       global.groupCache.set(m.chat, { data: groupMetadata, time: Date.now() })
       if (global.groupCache.size > 200)
@@ -128,11 +132,22 @@ export async function handler(chatUpdate) {
     userGroup = participants.find(p => p.id === m.sender) || {}
     botGroup = participants.find(p => p.id === this.user.jid) || {}
 
-    isRAdmin = userGroup.admin === "superadmin" || m.sender === groupMetadata.owner
-    isAdmin = isRAdmin || userGroup.admin === "admin"
+    // MEJORA SPEED: Cache admins por usuario
+    const adminKey = m.chat + ":" + m.sender
+    const cachedAdmin = global.adminCache.get(adminKey)
+    if (cachedAdmin && Date.now() - cachedAdmin.time < 60000) {
+      isAdmin = cachedAdmin.admin
+      isRAdmin = cachedAdmin.radmin
+    } else {
+      isRAdmin = userGroup.admin === "superadmin" || m.sender === groupMetadata.owner
+      isAdmin = isRAdmin || userGroup.admin === "admin"
+      global.adminCache.set(adminKey, { admin: isAdmin, radmin: isRAdmin, time: Date.now() })
+    }
+
     isBotAdmin = botGroup.admin === "admin" || botGroup.admin === "superadmin"
   }
 
+  /* ========= QUOTED ========= */
   if (m.quoted) {
     Object.defineProperty(m, "_quoted", {
       value: smsg(this, m.quoted),
