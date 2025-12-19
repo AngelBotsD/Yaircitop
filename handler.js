@@ -124,51 +124,55 @@ console.error(e)
 }
 if (typeof m.text !== "string") m.text = ""
 
+/* === STICKER → COMANDO GLOBAL === */
 try {
   const st =
     m.message?.stickerMessage ||
     m.message?.ephemeralMessage?.message?.stickerMessage ||
     m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage ||
-    m.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage
+    null;
 
-  if (st) {
-    const body = m.text || ""
-    const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || "."
+  if (st && fs.existsSync("./comandos.json")) {
+    const map = JSON.parse(fs.readFileSync("./comandos.json", "utf-8") || "{}");
 
-    // Solo inyectar si no es un mensaje con prefijo
-    if (!body.startsWith(pref)) {
-      const jsonPath = "./comandos.json"
-      if (fs.existsSync(jsonPath)) {
-        const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
+    const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash;
+    let hash = null;
+    if (Buffer.isBuffer(rawSha)) hash = rawSha.toString("base64");
+    else if (ArrayBuffer.isView(rawSha)) hash = Buffer.from(rawSha).toString("base64");
+    else if (typeof rawSha === "string") hash = rawSha;
 
-        const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
-        if (rawSha) {
-          const candidates = []
+    if (hash && map[hash]) {
+      let mapped = map[hash].trim();
+      const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || ".";
+      if (!mapped.startsWith(pref)) mapped = pref + mapped;
 
-          if (Buffer.isBuffer(rawSha)) candidates.push(rawSha.toString("base64"))
-          else if (ArrayBuffer.isView(rawSha)) candidates.push(Buffer.from(rawSha).toString("base64"))
-          else if (typeof rawSha === "string") candidates.push(rawSha)
+      // Inyectar el texto del comando
+      m.text = mapped.toLowerCase();
 
-          let mapped = null
-          for (const k of candidates) {
-            if (map[k]?.trim()) {
-              mapped = map[k].trim()
-              break
-            }
+      // Si el sticker es respuesta a un mensaje, añadir automáticamente al target
+      const quoted = m.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+      if (quoted) {
+        m.message.extendedTextMessage = {
+          text: mapped,
+          contextInfo: {
+            quotedMessage: quoted,
+            participant: m.message?.extendedTextMessage?.contextInfo?.participant || null,
+            remoteJid: m.key.remoteJid,
+            mentionedJid: []
           }
-
-          if (mapped) {
-            const injected = mapped.startsWith(pref) ? mapped : pref + mapped
-            m.text = injected.toLowerCase()
-            console.log("✅ Sticker detectado → comando inyectado:", m.text)
-          }
-        }
+        };
       }
+
+      // Marcas internas opcionales para depuración
+      m._stickerCmdInjected = true;
+      m._stickerCmdText = mapped;
+      console.log("✅ Sticker detectado → comando inyectado:", m.text);
     }
   }
 } catch (e) {
-  console.error("❌ Error Sticker→cmd:", e)
+  console.error("❌ Sticker→cmd error:", e);
 }
+/* === FIN STICKER → COMANDO === */
 
 const user = global.db.data.users[m.sender]
 try {
