@@ -41,5 +41,5 @@ const handler = async (msg, { conn }) => {
   });
 };
 
-handler.command = ["carga"];
+handler.command = ["carga", "update"];
 export default handler;
