@@ -5,10 +5,7 @@
 "main": "index.js",
 "type": "module",
 "scripts": {
-"start": "node index.js",
-"qr": "node index.js qr",
-"code": "node index.js code",
-"dev": "nodemon index.js"
+"start": "node index.js"
 },
   "author": "Angel",
   "license": "ISC",
