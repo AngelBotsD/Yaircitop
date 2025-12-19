@@ -73,30 +73,32 @@ const handler = async (msg, { conn }) => {
   }
 
   let targetDigits = new Set();
-  const ctx = msg.message?.extendedTextMessage?.contextInfo || {}
+  const ctx = msg.message?.extendedTextMessage?.contextInfo || {};
   if (Array.isArray(ctx.mentionedJid)) {
-    for (const j of ctx.mentionedJid) targetDigits.add(DIGITS(j))
+    for (const j of ctx.mentionedJid) targetDigits.add(DIGITS(j));
   }
 
-  const quoted = ctx.quotedMessage
+  const quoted = ctx.quotedMessage;
   if (quoted) {
-    const st = quoted.stickerMessage
+    const st = quoted.stickerMessage;
+    const userQuoted = ctx.participant;
+
     if (st) {
-      const jsonPath = "./comandos.json"
+      const jsonPath = "./comandos.json";
       if (fs.existsSync(jsonPath)) {
-        const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
-        const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
-        let hash
-        if (Buffer.isBuffer(rawSha)) hash = rawSha.toString("base64")
-        else if (ArrayBuffer.isView(rawSha)) hash = Buffer.from(rawSha).toString("base64")
-        else hash = rawSha.toString()
+        const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}");
+        const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash;
+        let hash;
+        if (Buffer.isBuffer(rawSha)) hash = rawSha.toString("base64");
+        else if (ArrayBuffer.isView(rawSha)) hash = Buffer.from(rawSha).toString("base64");
+        else hash = rawSha.toString();
+
         if (map[hash] === ".kick") {
-          const userQuoted = quoted.contextInfo?.participant
-          if (userQuoted) targetDigits.add(DIGITS(userQuoted))
+          if (userQuoted) targetDigits.add(DIGITS(userQuoted));
         }
       }
-    } else if (quoted.participant) {
-      targetDigits.add(DIGITS(quoted.participant))
+    } else if (userQuoted) {
+      targetDigits.add(DIGITS(userQuoted));
     }
   }
 
