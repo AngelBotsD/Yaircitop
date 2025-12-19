@@ -160,8 +160,30 @@ let isAdmin = false
 let isBotAdmin = false
 
 if (m.isGroup) {
-    try {
-        groupMetadata = await this.groupMetadata(m.chat)  // <-- Cambiar conn por this
+  try {
+    const cached = groupCache.get(m.chat)
+    if (cached && Date.now() - cached.time < 60_000) {
+      groupMetadata = cached.data
+    } else {
+      groupMetadata = await this.groupMetadata(m.chat)
+      groupCache.set(m.chat, { data: groupMetadata, time: Date.now() })
+    }
+
+    participants = groupMetadata.participants || []
+
+    const userParticipant = participants.find(p => p.id === m.sender)
+    isRAdmin = userParticipant?.admin === 'superadmin' || m.sender === groupMetadata.owner
+    isAdmin = isRAdmin || userParticipant?.admin === 'admin'
+
+    const botParticipant = participants.find(p => p.id === this.user.jid)
+    isBotAdmin = botParticipant?.admin === 'admin' || botParticipant?.admin === 'superadmin'
+
+    userGroup = userParticipant || {}
+    botGroup = botParticipant || {}
+  } catch (e) {
+    console.error('Error groupMetadata:', e)
+  }
+}  // <-- Cambiar conn por this
         participants = groupMetadata.participants || []
 
         // Buscar al usuario actual
