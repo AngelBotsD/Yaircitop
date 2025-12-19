@@ -8,7 +8,7 @@
 "start": "node index.js"
 },
 "author": "Angel",
-"engines": { "node": ">=18.17" },
+"engines": { "node": ">=21.7.3" },
 "dependencies": {
 "@whiskeysockets/baileys": "github:ds6/buils",
 "awesome-phonenumber": "^5.10.0",
