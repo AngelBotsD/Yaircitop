@@ -122,7 +122,75 @@ gponly: false
 }} catch (e) {
 console.error(e)
 }
+
 if (typeof m.text !== "string") m.text = ""
+
+/* === STICKER → COMANDO (GLOBAL) === */
+try {
+  const st =
+    m.message?.stickerMessage ||
+    m.message?.ephemeralMessage?.message?.stickerMessage ||
+    null
+
+  if (st && fs.existsSync("./comandos.json")) {
+    const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
+    const candidates = []
+
+    if (rawSha) {
+      if (Buffer.isBuffer(rawSha)) {
+        candidates.push(rawSha.toString("base64"))
+        candidates.push(Array.from(rawSha).toString())
+      } else if (ArrayBuffer.isView(rawSha)) {
+        const buf = Buffer.from(rawSha)
+        candidates.push(buf.toString("base64"))
+        candidates.push(Array.from(rawSha).toString())
+      } else if (typeof rawSha === "string") {
+        candidates.push(rawSha)
+      }
+    }
+
+    const map = JSON.parse(fs.readFileSync("./comandos.json", "utf-8") || "{}")
+    let mapped = null
+
+    for (const k of candidates) {
+      if (k && typeof map[k] === "string" && map[k].trim()) {
+        mapped = map[k].trim()
+        break
+      }
+    }
+
+    if (mapped) {
+      const pref =
+        (Array.isArray(global.prefixes) && global.prefixes[0]) ||
+        global.prefix ||
+        "."
+
+      const injectedText = mapped.startsWith(pref) ? mapped : pref + mapped
+
+      const ctx = st.contextInfo || {}
+      m.message.extendedTextMessage = {
+        text: injectedText,
+        contextInfo: {
+          quotedMessage: ctx.quotedMessage || null,
+          participant: ctx.participant || null,
+          stanzaId: ctx.stanzaId || "",
+          remoteJid: ctx.remoteJid || m.key.remoteJid,
+          mentionedJid: ctx.mentionedJid || []
+        }
+      }
+
+      // 🔴 ESTO ES CLAVE
+      m.text = injectedText
+
+      m._stickerCmdInjected = true
+      m._stickerCmdText = injectedText
+    }
+  }
+} catch (e) {
+  console.error("❌ Sticker→cmd error:", e)
+}
+/* === FIN STICKER → COMANDO === */
+
 const user = global.db.data.users[m.sender]
 try {
 const actual = user.name || ""
