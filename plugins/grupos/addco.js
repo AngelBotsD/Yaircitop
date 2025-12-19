@@ -1,92 +1,56 @@
 // plugins/addco.js
-import fs from "fs";
-import path from "path";
+import fs from 'fs'
+import path from 'path'
 
-const handler = async (msg, { conn, args }) => {
-  const chatId = msg.key.remoteJid;
-  const isGroup = chatId.endsWith("@g.us");
-  const senderId = msg.key.participant || msg.key.remoteJid;
-  const senderNum = senderId.replace(/[^0-9]/g, "");
-  const isOwner = global.owner.some(([id]) => id === senderNum);
-  const isFromMe = msg.key.fromMe;
+const jsonPath = path.resolve('./comandos.json')
 
-  if (isGroup && !isOwner && !isFromMe) {
-    const metadata = await conn.groupMetadata(chatId);
-    const participant = metadata.participants.find(p => p.id === senderId);
-    const isAdmin =
-      participant?.admin === "admin" ||
-      participant?.admin === "superadmin";
+export async function handler(m, { conn }) {
+  // Verificar que el mensaje sea un sticker
+  const st =
+    m.message?.stickerMessage ||
+    m.message?.ephemeralMessage?.message?.stickerMessage ||
+    m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage ||
+    m.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage
 
-    if (!isAdmin) {
-      return conn.sendMessage(
-        chatId,
-        { text: "🚫 *Solo los administradores, el owner o el bot pueden usar este comando.*" },
-        { quoted: msg }
-      );
-    }
-  } else if (!isGroup && !isOwner && !isFromMe) {
-    return conn.sendMessage(
-      chatId,
-      { text: "🚫 *Solo el owner o el mismo bot pueden usar este comando en privado.*" },
-      { quoted: msg }
-    );
+  if (!st) {
+    return conn.sendMessage(m.chat, {
+      text: "❌ Responde a un sticker para asignarle un comando."
+    }, { quoted: m })
   }
 
-  const quoted =
-    msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-
-  if (!quoted?.stickerMessage) {
-    return conn.sendMessage(
-      chatId,
-      { text: "❌ *Responde a un sticker para asignarle un comando.*" },
-      { quoted: msg }
-    );
+  // Obtener el comando a vincular (solo argumento, sin el nombre del plugin)
+  const text = m.text?.split(/\s+/).slice(1).join(" ").trim()
+  if (!text) {
+    return conn.sendMessage(m.chat, {
+      text: "❌ Debes indicar el comando que quieres asociar al sticker.\nEjemplo: .addco kick"
+    }, { quoted: m })
   }
 
-  const comando = args.join(" ").trim();
-  if (!comando) {
-    return conn.sendMessage(
-      chatId,
-      { text: "⚠️ *Especifica el comando a asignar. Ejemplo:* addco kick" },
-      { quoted: msg }
-    );
-  }
+  // Crear comandos.json si no existe
+  if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, '{}')
+  const map = JSON.parse(fs.readFileSync(jsonPath, 'utf-8') || '{}')
 
-  const fileSha = quoted.stickerMessage.fileSha256?.toString("base64");
-  if (!fileSha) {
-    return conn.sendMessage(
-      chatId,
-      { text: "❌ *No se pudo obtener el ID único del sticker.*" },
-      { quoted: msg }
-    );
-  }
+  // Obtener hash del sticker
+  const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
+  if (!rawSha) return conn.sendMessage(m.chat, { text: "❌ No se pudo obtener el hash del sticker." }, { quoted: m })
 
-  const jsonPath = path.resolve("./comandos.json");
+  let hash
+  if (Buffer.isBuffer(rawSha)) hash = rawSha.toString('base64')
+  else if (ArrayBuffer.isView(rawSha)) hash = Buffer.from(rawSha).toString('base64')
+  else hash = rawSha.toString()
 
-  // 👉 Crear archivo si no existe
-  if (!fs.existsSync(jsonPath)) {
-    fs.writeFileSync(jsonPath, "{}", "utf-8");
-  }
+  // Guardar en JSON
+  map[hash] = text.startsWith('.') ? text : '.' + text
+  fs.writeFileSync(jsonPath, JSON.stringify(map, null, 2))
 
-  const data = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+  // Reaccionar y enviar confirmación
+  await conn.sendMessage(m.chat, { react: { text: "✅", key: m.key } })
+  return conn.sendMessage(m.chat, {
+    text: `✅ Sticker vinculado al comando: ${map[hash]}`,
+    quoted: m
+  })
+}
 
-  data[fileSha] = comando;
-
-  fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2));
-
-  await conn.sendMessage(chatId, {
-    react: { text: "✅", key: msg.key }
-  });
-
-  return conn.sendMessage(
-    chatId,
-    { text: `✅ *Sticker vinculado al comando con éxito:* \`${comando}\`` },
-    { quoted: msg }
-  );
-};
-
-handler.command = ["addco"];
-handler.tags = ["tools"];
-handler.help = ["addco <comando>"];
-
-export default handler;
+handler.command = ['addco']
+handler.rowner = true // solo el dueño del bot puede usarlo
+export default handler
