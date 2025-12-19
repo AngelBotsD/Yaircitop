@@ -149,7 +149,9 @@ await delay(time)
 }
 
 if (m.isBaileys) return
+if (!m.fromMe && m.text) {
 m.exp += Math.ceil(Math.random() * 10)
+}
 let usedPrefix
 let groupMetadata = {}
 let participants = []
