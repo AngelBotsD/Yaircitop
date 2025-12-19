@@ -17,7 +17,7 @@ export async function handler(m, { conn }) {
 
   if (!st) {
     return conn.sendMessage(m.chat, {
-      text: '❌ Responde al sticker que quieres eliminar.'
+      text: '❌ Responde al sticker.'
     }, { quoted: m })
   }
 
@@ -30,19 +30,26 @@ export async function handler(m, { conn }) {
   const map = JSON.parse(fs.readFileSync(jsonPath, 'utf-8') || '{}')
 
   const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
-  if (!rawSha) {
-    return conn.sendMessage(m.chat, {
-      text: '❌ No se pudo obtener el hash.'
-    }, { quoted: m })
+  const candidates = []
+
+  if (rawSha) {
+    if (Buffer.isBuffer(rawSha)) candidates.push(rawSha.toString('base64'))
+    else if (ArrayBuffer.isView(rawSha)) candidates.push(Buffer.from(rawSha).toString('base64'))
+    else if (typeof rawSha === 'string') candidates.push(rawSha)
   }
 
-  let hash
-  if (Buffer.isBuffer(rawSha)) hash = rawSha.toString('base64')
-  else if (ArrayBuffer.isView(rawSha)) hash = Buffer.from(rawSha).toString('base64')
-  else hash = rawSha.toString()
+  let foundKey = null
+  let data = null
 
-  const data = map[hash]
-  if (!data) {
+  for (const k of candidates) {
+    if (map[k]) {
+      foundKey = k
+      data = map[k]
+      break
+    }
+  }
+
+  if (!foundKey || !data) {
     return conn.sendMessage(m.chat, {
       text: '❌ Este sticker no tiene comando.'
     }, { quoted: m })
@@ -50,11 +57,11 @@ export async function handler(m, { conn }) {
 
   if (data.chat !== m.chat) {
     return conn.sendMessage(m.chat, {
-      text: '❌ Este sticker pertenece a otro grupo.'
+      text: '❌ Este sticker no pertenece a este grupo.'
     }, { quoted: m })
   }
 
-  delete map[hash]
+  delete map[foundKey]
   fs.writeFileSync(jsonPath, JSON.stringify(map, null, 2))
 
   await conn.sendMessage(m.chat, { react: { text: '🗑️', key: m.key } })
