@@ -23,4 +23,5 @@ const handler = async (msg, { conn }) => {
 };
 
 handler.command = ["rest", "restart"];
+handler.rowner = true
 export default handler;
