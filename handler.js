@@ -122,6 +122,7 @@ gponly: false
 }} catch (e) {
 console.error(e)
 }
+if (typeof m.text !== "string") m.text = ""
 
 try {
   const st =
