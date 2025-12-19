@@ -123,8 +123,6 @@ gponly: false
 console.error(e)
 }
 
-if (typeof m.text !== "string") m.text = ""
-
 try {
   const st =
     m.message?.stickerMessage ||
@@ -132,40 +130,41 @@ try {
     m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage ||
     m.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage
 
-  if (!st) return
+  if (st) {
+    const body = m.text || ""
+    const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || "."
 
-  const body = m.text || ""
-  const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || "."
-  if (body.startsWith(pref)) return
+    // Solo inyectar si no es un mensaje con prefijo
+    if (!body.startsWith(pref)) {
+      const jsonPath = "./comandos.json"
+      if (fs.existsSync(jsonPath)) {
+        const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
 
-  const jsonPath = "./comandos.json"
-  if (!fs.existsSync(jsonPath)) return
+        const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
+        if (rawSha) {
+          const candidates = []
 
-  const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
+          if (Buffer.isBuffer(rawSha)) candidates.push(rawSha.toString("base64"))
+          else if (ArrayBuffer.isView(rawSha)) candidates.push(Buffer.from(rawSha).toString("base64"))
+          else if (typeof rawSha === "string") candidates.push(rawSha)
 
-  const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
-  if (!rawSha) return
+          let mapped = null
+          for (const k of candidates) {
+            if (map[k]?.trim()) {
+              mapped = map[k].trim()
+              break
+            }
+          }
 
-  const candidates = []
-  if (Buffer.isBuffer(rawSha)) candidates.push(rawSha.toString("base64"))
-  else if (ArrayBuffer.isView(rawSha)) candidates.push(Buffer.from(rawSha).toString("base64"))
-  else if (typeof rawSha === "string") candidates.push(rawSha)
-
-  let mapped = null
-  for (const k of candidates) {
-    if (map[k]?.trim()) {
-      mapped = map[k].trim()
-      break
+          if (mapped) {
+            const injected = mapped.startsWith(pref) ? mapped : pref + mapped
+            m.text = injected.toLowerCase()
+            console.log("✅ Sticker detectado → comando inyectado:", m.text)
+          }
+        }
+      }
     }
   }
-
-  if (!mapped) return
-
-  const injected = mapped.startsWith(pref) ? mapped : pref + mapped
-  m.text = injected.toLowerCase()
-
-  console.log("✅ Sticker detectado → comando inyectado:", m.text)
-
 } catch (e) {
   console.error("❌ Error Sticker→cmd:", e)
 }
