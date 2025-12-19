@@ -95,7 +95,7 @@ function safeBaseFromTitle(title) {
     .replace(/[^A-Za-z0-9_.-]+/g, "_");
 }
 
-import async (msg, { conn, args, command }) => {
+import async msg, { conn, args, command }) => {
   const chatId = msg.key.remoteJid;
   const pref = global.prefixes?.[0] || ".";
   let text = (args.join(" ") || "").trim();
