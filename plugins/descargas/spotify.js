@@ -60,6 +60,10 @@ const handler = async (m, { conn, args }) => {
     );
   }
 
+  await conn.sendMessage(m.chat, {
+    react: { text: "🕒", key: m.key }
+  });
+
   const fkontak = {
     key: {
       participants: "0@s.whatsapp.net",
@@ -89,6 +93,10 @@ const handler = async (m, { conn, args }) => {
       },
       { quoted: fkontak }
     );
+
+    await conn.sendMessage(m.chat, {
+      react: { text: "✅", key: m.key }
+    });
 
   } catch (e) {
     let msg = "❌ Error al descargar desde Spotify";
