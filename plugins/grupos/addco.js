@@ -11,35 +11,7 @@ function getStickerHash(st) {
   return rawSha.toString();
 }
 
-async function processStickerCommand(m, conn) {
-  try {
-    // Crear comandos.json si no existe
-    if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, '{}');
-    const map = JSON.parse(fs.readFileSync(jsonPath, 'utf-8') || '{}');
-
-    const st = m.message?.stickerMessage || m.message?.ephemeralMessage?.message?.stickerMessage;
-    if (!st) return false;
-
-    const hash = getStickerHash(st);
-    if (!hash) return false;
-
-    if (map[hash]) {
-      const cmd = map[hash].startsWith('.') ? map[hash] : '.' + map[hash];
-      m.text = cmd.toLowerCase();
-      console.log('✅ Sticker detectado, comando inyectado:', m.text);
-
-      // Ejecutar el handler con el mensaje modificado
-      await handler.call(conn, { messages: [m] });
-      return true;
-    }
-  } catch (e) {
-    console.error('❌ Error procesando sticker→comando:', e);
-  }
-  return false;
-}
-
-// ======= .addco =======
-export async function addco(m, { conn }) {
+async function handler(m, { conn }) {
   const st = m.message?.stickerMessage || m.message?.ephemeralMessage?.message?.stickerMessage;
   if (!st) return conn.sendMessage(m.chat, { text: '❌ Responde a un sticker para asignarle un comando.' }, { quoted: m });
 
@@ -61,31 +33,10 @@ export async function addco(m, { conn }) {
   return conn.sendMessage(m.chat, { text: `✅ Sticker vinculado al comando: ${map[hash]}` }, { quoted: m });
 }
 
-addco.command = ['addco'];
-addco.rowner = true; // solo el dueño
+// Ahora sí, propiedades estilo handler
+handler.command = /^(addco)$/i;
+handler.group = true;
+handler.admin = true;
+handler.rowner = true;
 
-// ======= .delco =======
-export async function delco(m, { conn }) {
-  const st = m.message?.stickerMessage || m.message?.ephemeralMessage?.message?.stickerMessage;
-  if (!st) return conn.sendMessage(m.chat, { text: '❌ Responde a un sticker para desvincularlo.' }, { quoted: m });
-
-  if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, '{}');
-  const map = JSON.parse(fs.readFileSync(jsonPath, 'utf-8') || '{}');
-
-  const hash = getStickerHash(st);
-  if (!hash || !map[hash]) return conn.sendMessage(m.chat, { text: '❌ Este sticker no está vinculado a ningún comando.' }, { quoted: m });
-
-  const oldCmd = map[hash];
-  delete map[hash];
-  fs.writeFileSync(jsonPath, JSON.stringify(map, null, 2));
-
-  return conn.sendMessage(m.chat, { text: `✅ Sticker desvinculado del comando: ${oldCmd}` }, { quoted: m });
-}
-
-delco.command = ['delco'];
-delco.rowner = true;
-
-// ======= Export para el handler principal =======
-export async function stickerHandler(m, { conn }) {
-  return await processStickerCommand(m, conn);
-}
+export default handler;
