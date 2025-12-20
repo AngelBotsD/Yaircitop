@@ -242,6 +242,50 @@ export async function handler(chatUpdate) {
 
         if (!isAccept) continue
 
+const adminMode = chat.modoadmin || false
+const wa =
+  plugin.botAdmin ||
+  plugin.admin ||
+  plugin.group ||
+  plugin ||
+  noPrefix ||
+  pluginPrefix ||
+  m.text.slice(0, 1) === pluginPrefix ||
+  plugin.command
+
+if (adminMode && !isOwner && m.isGroup && !isAdmin && wa) return
+
+if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) {
+  fail("owner", m, this)
+  continue
+}
+if (plugin.rowner && !isROwner) {
+  fail("rowner", m, this)
+  continue
+}
+if (plugin.owner && !isOwner) {
+  fail("owner", m, this)
+  continue
+}
+if (plugin.premium && !isPrems) {
+  fail("premium", m, this)
+  continue
+}
+if (plugin.group && !m.isGroup) {
+  fail("group", m, this)
+  continue
+} else if (plugin.botAdmin && !isBotAdmin) {
+  fail("botAdmin", m, this)
+  continue
+} else if (plugin.admin && !isAdmin) {
+  fail("admin", m, this)
+  continue
+}
+if (plugin.private && m.isGroup) {
+  fail("private", m, this)
+  continue
+}
+
         m.plugin = name
         m.isCommand = true
         m.exp += plugin.exp ? parseInt(plugin.exp) : 10
