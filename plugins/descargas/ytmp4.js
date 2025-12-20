@@ -7,14 +7,6 @@ function isYouTube(url = "") {
   return /^https?:\/\//i.test(url) && /(youtube\.com|youtu\.be|music\.youtube\.com)/i.test(url)
 }
 
-function fmtDur(sec) {
-  const n = Number(sec || 0)
-  const h = Math.floor(n / 3600)
-  const m = Math.floor((n % 3600) / 60)
-  const s = n % 60
-  return (h ? `${h}:` : "") + `${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`
-}
-
 const handler = async (msg, { conn, text, usedPrefix, command }) => {
   const chatId = msg.key.remoteJid
   const url = String(text || "").trim()
@@ -42,9 +34,7 @@ const handler = async (msg, { conn, text, usedPrefix, command }) => {
     const {
       url: videoUrl,
       title = "YouTube",
-      duration,
-      quality = "HD",
-      author = "Desconocido"
+      quality = "—"
     } = data.result
 
     const caption = `
