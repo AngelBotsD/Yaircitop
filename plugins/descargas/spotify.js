@@ -3,8 +3,8 @@
 import axios from "axios";
 import fetch from "node-fetch";
 
-const API_BASE = (process.env.API_BASE || "https://api-sky.ultraplus.click").replace(/\/+$/, "");
-const API_KEY = process.env.API_KEY || "Angxllll";
+const API_BASE = (global.APIs.sky || "").replace(/\/+$/, "");
+const API_KEY = global.APIKeys.sky || "";
 const MAX_TIMEOUT = 30000;
 
 let thumb = null;
