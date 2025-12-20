@@ -188,7 +188,7 @@ try {
 const chat = global.db.data.chats[m.chat]
 const settings = global.db.data.settings[this.user.jid]
 
-const isOwner = isROwner || m.fromMe
+const isOwner = isOwner || m.fromMe
 const isOwners = [this.user.jid, ...global.owner.map(n => n + "@lid")].includes(m.sender)
 
 if (settings.self && !isOwners) return
