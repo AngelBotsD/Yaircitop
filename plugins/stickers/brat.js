@@ -14,21 +14,18 @@ const handler = async (m, { conn, text }) => {
     // Reacción inicial
     await conn.sendMessage(m.chat, { react: { text: "🕒", key: m.key } });
 
-    // API_KEY directo en el código
-    const API_KEY = "Angxlllll";
+    // API_KEY directa
+    const API_KEY = "TU_API_KEY_REAL";
 
-    // POST a la API Brat
+    // POST a la API
     const r = await axios.post(
       "https://api-sky.ultraplus.click/brat",
       { text: text, size: 512 },
       { headers: { apikey: API_KEY } }
     );
 
-    // Verificar que la API devolvió image_url
     const stickerUrl = r.data?.data?.image_url;
-    if (!stickerUrl) {
-      throw new Error("La API no devolvió la URL del sticker");
-    }
+    if (!stickerUrl) throw new Error("La API no devolvió la URL del sticker");
 
     // Enviar sticker
     await conn.sendMessage(
