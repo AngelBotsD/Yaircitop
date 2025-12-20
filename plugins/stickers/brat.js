@@ -15,7 +15,7 @@ const handler = async (m, { conn, text }) => {
     await conn.sendMessage(m.chat, { react: { text: "🕒", key: m.key } });
 
     // API_KEY directa
-    const API_KEY = "TU_API_KEY_REAL";
+    const API_KEY = "Angxlllll";
 
     // POST a la API
     const r = await axios.post(
