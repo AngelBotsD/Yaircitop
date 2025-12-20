@@ -13,48 +13,46 @@ const handler = async (m, { conn, text }) => {
   }
 
   await conn.sendMessage(m.chat, {
-    react: { text: "🔎", key: m.key }
+    react: { text: "🎧", key: m.key }
   })
 
   try {
-    const res = await axios.get(`${API_BASE}/api/spotify/search`, {
+    const res = await axios.get(`${API_BASE}/spotify`, {
       params: {
-        q: text,
+        text,
         apikey: API_KEY
       }
     })
 
-    if (!res.data?.status) throw "No se encontraron resultados"
+    if (!res.data?.status) throw "No se pudo obtener la canción"
 
-    const s = res.data.result[0]
+    const { song, downloadUrl } = res.data
 
     const caption = `
-🎵 *${s.title}*
-👤 ${s.artist}
-⏱️ ${s.duration}
-🔗 ${s.url}
+🎵 *${song.title}*
+👤 ${song.artist}
+⏱️ ${song.duration}
+🔗 ${song.spotifyUrl}
 `.trim()
 
     await conn.sendMessage(
       m.chat,
       {
-        image: { url: s.thumbnail },
+        image: { url: song.thumbnail },
         caption
       },
       { quoted: m }
     )
 
-    if (s.preview) {
-      await conn.sendMessage(
-        m.chat,
-        {
-          audio: { url: s.preview },
-          mimetype: "audio/mpeg",
-          ptt: false
-        },
-        { quoted: m }
-      )
-    }
+    await conn.sendMessage(
+      m.chat,
+      {
+        audio: { url: downloadUrl },
+        mimetype: "audio/mpeg",
+        ptt: false
+      },
+      { quoted: m }
+    )
 
     await conn.sendMessage(m.chat, {
       react: { text: "✅", key: m.key }
