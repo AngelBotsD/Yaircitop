@@ -1,114 +1,73 @@
-"use strict";
+import axios from "axios"
 
-import axios from "axios";
-import fetch from "node-fetch";
+const API_BASE = "https://api-adonix.ultraplus.click"
+const API_KEY = "Angxlllll"
 
-const API_BASE = (global.APIs.sky || "").replace(/\/+$/, "");
-const API_KEY = global.APIKeys.sky || "";
-const MAX_TIMEOUT = 30000;
-
-let thumb = null;
-fetch("https://cdn.russellxz.click/28a8569f.jpeg")
-  .then(r => r.arrayBuffer())
-  .then(b => thumb = Buffer.from(b))
-  .catch(() => null);
-
-async function getSpotifyMp3(input) {
-  const endpoint = `${API_BASE}/spotify`;
-  const isUrl = /spotify\.com/i.test(input);
-  const body = isUrl ? { url: input } : { query: input };
-
-  const { data, status } = await axios.post(
-    endpoint,
-    body,
-    {
-      headers: {
-        apikey: API_KEY,
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      timeout: MAX_TIMEOUT,
-      validateStatus: () => true
-    }
-  );
-
-  let res = data;
-  if (typeof res === "string") {
-    try { res = JSON.parse(res.trim()); } catch { throw new Error("Respuesta inválida"); }
-  }
-
-  const ok = res?.status === true || res?.status === "true";
-  if (!ok) throw new Error(res?.message || res?.error || `HTTP ${status}`);
-
-  const mp3Url = res?.result?.media?.audio;
-  if (!mp3Url) throw new Error("MP3 no disponible");
-
-  return {
-    mp3Url,
-    title: res?.result?.title || "Spotify",
-    artist: res?.result?.artist || "Desconocido"
-  };
-}
-
-const handler = async (m, { conn, args }) => {
-  const text = (args.join(" ") || "").trim();
-  if (!text) {
+const handler = async (m, { conn, text }) => {
+  if (!text?.trim()) {
     return conn.sendMessage(
       m.chat,
-      { text: "✳️ Usa:\n.sp <canción o URL>" },
+      { text: "✳️ Usa:\n.spotify <canción>" },
       { quoted: m }
-    );
+    )
   }
 
   await conn.sendMessage(m.chat, {
-    react: { text: "🕒", key: m.key }
-  });
-
-  const fkontak = {
-    key: {
-      participants: "0@s.whatsapp.net",
-      remoteJid: "status@broadcast",
-      fromMe: false,
-      id: "Angel"
-    },
-    message: {
-      locationMessage: {
-        name: "𝖧𝗈𝗅𝖺, 𝖲𝗈𝗒 𝖠𝗇𝗀𝖾𝗅 𝖡𝗈𝗍",
-        jpegThumbnail: thumb
-      }
-    },
-    participant: "0@s.whatsapp.net"
-  };
+    react: { text: "🔎", key: m.key }
+  })
 
   try {
-    const { mp3Url, title, artist } = await getSpotifyMp3(text);
+    const res = await axios.get(`${API_BASE}/api/spotify/search`, {
+      params: {
+        q: text,
+        apikey: API_KEY
+      }
+    })
+
+    if (!res.data?.status) throw "No se encontraron resultados"
+
+    const s = res.data.result[0]
+
+    const caption = `
+🎵 *${s.title}*
+👤 ${s.artist}
+⏱️ ${s.duration}
+🔗 ${s.url}
+`.trim()
 
     await conn.sendMessage(
       m.chat,
       {
-        audio: { url: mp3Url },
-        mimetype: "audio/mpeg",
-        fileName: `${title} - ${artist}.mp3`,
-        caption: `🎵 ${title}\n👤 ${artist}`
+        image: { url: s.thumbnail },
+        caption
       },
-      { quoted: fkontak }
-    );
+      { quoted: m }
+    )
+
+    if (s.preview) {
+      await conn.sendMessage(
+        m.chat,
+        {
+          audio: { url: s.preview },
+          mimetype: "audio/mpeg",
+          ptt: false
+        },
+        { quoted: m }
+      )
+    }
 
     await conn.sendMessage(m.chat, {
       react: { text: "✅", key: m.key }
-    });
+    })
 
   } catch (e) {
-    let msg = "❌ Error al descargar desde Spotify";
-    if (/api key|unauthorized|401/i.test(e?.message)) msg = "🔐 API Key inválida";
-    else if (/timeout|502|upstream/i.test(e?.message)) msg = "⚠️ Error del servidor";
-
-    await conn.sendMessage(m.chat, { text: msg }, { quoted: m });
+    await conn.sendMessage(
+      m.chat,
+      { text: `❌ Error: ${e}` },
+      { quoted: m }
+    )
   }
-};
+}
 
-handler.command = ["spotify", "sp"];
-handler.help = ["spotify <canción o url>"];
-handler.tags = ["descargas"];
-
-export default handler;
+handler.command = ["spotify"]
+export default handler
