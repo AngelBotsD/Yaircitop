@@ -94,4 +94,4 @@ export async function handler(msg, { conn, text, usedPrefix, command }) {
 handler.command  = ["ytmp4","ytv","yt4"];
 handler.help     = ["ytmp4 <url>"];
 handler.tags     = ["descargas"];
-handler.register = true;
+export default handler;
