@@ -15,7 +15,7 @@ function fmtDur(sec) {
   return (h ? `${h}:` : "") + `${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`
 }
 
-export async function handler(msg, { conn, text, usedPrefix, command }) {
+const handler = async (msg, { conn, text, usedPrefix, command }) => {
   const chatId = msg.key.remoteJid
   const pref = usedPrefix || "."
 
@@ -44,7 +44,7 @@ export async function handler(msg, { conn, text, usedPrefix, command }) {
     await conn.sendMessage(chatId, {
       video: { url: videoUrl },
       mimetype: "video/mp4",
-      caption: `⚡ 𝗬𝗼𝘂𝗧𝘂𝗯𝗲 𝗩𝗶𝗱𝗲𝗼 — 𝗟𝗶𝘀𝘁𝗼\n\n✦ 𝗧𝗶́𝘁𝘂𝗹𝗼: ${title}\n✦ 𝗗𝘂𝗿𝗮𝗰𝗶𝗼́n: ${durTxt}\n\n🔗 API usada: ${API_BASE}`
+      caption: `⚡ 𝗬𝗼𝘂𝗧𝘂𝗯𝗲 𝗩𝗶𝗱𝗲𝗼 — 𝗟𝗶𝘀𝘁𝗼\n\n✦ 𝗧𝗶́𝘁𝘂𝗹𝗼: ${title}\n✦ 𝗗𝘂𝗿𝗮𝗰𝗶𝗼́n: ${durTxt}\n🔗 API usada: ${API_BASE}`
     }, { quoted: msg })
 
   } catch (err) {
@@ -53,6 +53,8 @@ export async function handler(msg, { conn, text, usedPrefix, command }) {
   }
 }
 
-handler.command  = ["ytmp4","ytv","yt4"]
-handler.help     = ["ytmp4 <url>"]
-handler.tags     = ["descargas"]
+handler.command  = ["ytmp4", "yta4"]
+handler.help     = ["𝖸𝗍𝗆𝗉4 <𝗎𝗋𝗅>"]
+handler.tags     = ["𝖣𝖤𝖲𝖢𝖠𝖱𝖦𝖠𝖲"]
+
+export default handler
