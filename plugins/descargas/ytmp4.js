@@ -43,7 +43,7 @@ const handler = async (msg, { conn, text, usedPrefix, command }) => {
     await conn.sendMessage(chatId, {
       video: { url: videoUrl },
       mimetype: "video/mp4",
-      caption: `> *𝚈𝚃𝙼𝙿4 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁*\n\n⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${title}\n✦ 𝗗𝘂𝗿𝗮𝗰𝗶𝗼́n: ${durTxt}\n🔗 API usada: ${API_BASE}`
+      caption: `> *𝚈𝚃𝙼𝙿4 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁*\n\n⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${title}\n✦ 𝗗𝘂𝗿𝗮𝗰𝗶𝗼́n: ${durTxt}\n⭒ ִֶָ७ ꯭🌐˙⋆｡ - *𝙰𝚙𝚒:* MayAPI`
     }, { quoted: msg })
 
     await conn.sendMessage(chatId, { react: { text: "✅", key: msg.key } })
