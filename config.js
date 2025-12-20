@@ -16,8 +16,7 @@ global.sessions = '𝖠𝗇𝗀𝖾𝗅𝖡𝗈𝗍'
 
 let file = fileURLToPath(import.meta.url)
 watchFile(file, () => {
-unwatchFile(file)
-console.log(chalk.redBright("Se actualizo el
-'config.js'"))
-import(`file://${file}?update=${Date.now()}`)
+  unwatchFile(file)
+  console.log(chalk.redBright("Se actualizo el 'config.js'"))
+  import(`file://${file}?update=${Date.now()}`)
 })
