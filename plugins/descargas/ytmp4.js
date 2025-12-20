@@ -130,7 +130,6 @@ export async function handler(msg, { conn, text, usedPrefix, command }) {
 ✦ 𝗧𝗶́𝘁𝘂𝗹𝗼: ${base}
 ✦ 𝗗𝘂𝗿𝗮𝗰𝗶𝗼́n: ${durTxt}
 
-🤖 𝗕𝗼𝘁: La Suki Bot
 🔗 𝗔𝗣𝗜 𝘂𝘀𝗮𝗱𝗮: ${API_BASE}`;
 
     const buf = fs.readFileSync(filePath);
