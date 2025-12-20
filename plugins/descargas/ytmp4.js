@@ -17,12 +17,11 @@ function fmtDur(sec) {
 
 const handler = async (msg, { conn, text, usedPrefix, command }) => {
   const chatId = msg.key.remoteJid
-  const pref = usedPrefix || "."
 
   const url = String(text || "").trim()
   if (!url) {
     return conn.sendMessage(chatId, {
-      text: `✳️ Usa:\n${pref}${command} <url>\nEj:\n${pref}${command} https://youtu.be/xxxx`
+      text: `✳️ Usa:\n${usedPrefix}${command} <url>\nEj:\n${usedPrefix}${command} https://youtu.be/xxxx`
     }, { quoted: msg })
   }
 
@@ -31,7 +30,7 @@ const handler = async (msg, { conn, text, usedPrefix, command }) => {
   }
 
   try {
-    await conn.sendMessage(chatId, { text: "⏳ Obteniendo video..." }, { quoted: msg })
+    await conn.sendMessage(chatId, { react: { text: "🕒", key: msg.key } })
 
     const apiUrl = `${API_BASE}/ytdl?url=${encodeURIComponent(url)}&type=Mp4&apikey=${API_KEY}`
     const { data } = await axios.get(apiUrl)
@@ -46,6 +45,8 @@ const handler = async (msg, { conn, text, usedPrefix, command }) => {
       mimetype: "video/mp4",
       caption: `⚡ 𝗬𝗼𝘂𝗧𝘂𝗯𝗲 𝗩𝗶𝗱𝗲𝗼 — 𝗟𝗶𝘀𝘁𝗼\n\n✦ 𝗧𝗶́𝘁𝘂𝗹𝗼: ${title}\n✦ 𝗗𝘂𝗿𝗮𝗰𝗶𝗼́n: ${durTxt}\n🔗 API usada: ${API_BASE}`
     }, { quoted: msg })
+
+    await conn.sendMessage(chatId, { react: { text: "✅", key: msg.key } })
 
   } catch (err) {
     console.error("ytmp4 error:", err)
