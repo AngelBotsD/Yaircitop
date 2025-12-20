@@ -94,31 +94,6 @@ async function mapJidsToReal(conn, chatId, jids = []) {
 
 let handler = async (m, { conn }) => {
   const chatId = m.chat
-  const isGroup = chatId.endsWith("@g.us")
-  const senderId = m.sender
-  const senderNo = DIGITS(senderId)
-  const isFromMe = m.key.fromMe
-
-  if (!isGroup) {
-    await conn.sendMessage(chatId, { text: "❌ *Este comando solo funciona en grupos*" }, { quoted: m })
-    return
-  }
-
-  const isAdmin = await isAdminByNumber(conn, chatId, senderNo)
-
-  const ownerPath = path.resolve("owner.json")
-  const owners = fs.existsSync(ownerPath)
-    ? JSON.parse(fs.readFileSync(ownerPath, "utf-8"))
-    : global.owner || []
-
-  const isOwner = Array.isArray(owners) && owners.some(([id]) => id === senderNo)
-
-  if (!isAdmin && !isOwner && !isFromMe) {
-    await conn.sendMessage(chatId, {
-      text: "⛔ *Solo administradores o dueños del bot pueden usar esto*"
-    }, { quoted: m })
-    return
-  }
 
   const user =
     m.mentionedJid?.[0] ||
