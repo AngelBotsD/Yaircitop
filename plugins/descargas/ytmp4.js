@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 
 const API_BASE = "https://mayapi.ooguy.com";
-const API_KEY  = "Angxlllll";
+const API_KEY  = "may-0595dca2";
 
 function isYouTube(url = "") {
   return /^https?:\/\//i.test(url) && /(youtube\.com|youtu\.be|music\.youtube\.com)/i.test(url);
