@@ -31,10 +31,11 @@ const handler = async (m, { conn, text }) => {
     })
 
     const sticker = new Sticker(img.data, {
-      type: "full",
-      pack: "Angel Bot",
-      author: "Angxl/333",
-      quality: 100
+    const senderName = msg.pushName ||      
+    "Usuario";
+    const metadata = {
+    packname: senderName,
+    author: ""
     })
 
     const stickerBuffer = await sticker.toBuffer()
