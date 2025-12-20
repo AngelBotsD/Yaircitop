@@ -1,102 +1,93 @@
-import axios from "axios"
-import yts from "yt-search"
-import fs from "fs"
-import path from "path"
-import { pipeline } from "stream"
-import { promisify } from "util"
+import fetch from "node-fetch";
+import yts from "yt-search";
 
-const pipe = promisify(pipeline)
-const MAX_SIZE = 60 * 1024 * 1024
-const API_KEY = "may-0595dca2"
+const ADONIX_API = "https://api-adonix.ultraplus.click";
+const API_KEY = "Angxlllll";
 
-const handler = async (m, { conn, text }) => {
-  if (!text)
-    return conn.sendMessage(m.chat, { text: "🎬 Ingresa un link de YouTube" }, { quoted: m })
+// Obtener audio SOLO con Adonix
+const getAudioUrl = async (videoUrl) => {
+  const url = `${ADONIX_API}/api/ytmp3?url=${encodeURIComponent(videoUrl)}&apikey=${API_KEY}&quality=64`;
 
-  if (!/youtu\.?be/.test(text))
-    return conn.sendMessage(
-      m.chat,
-      { text: "⚠️ Solo links de YouTube\n\nEj:\n.ytmp4 https://youtu.be/dQw4w9WgXcQ" },
-      { quoted: m }
-    )
+  const res = await fetch(url, { timeout: 10_000 });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-  await conn.sendMessage(m.chat, { react: { text: "🕒", key: m.key } })
+  const data = await res.json();
+
+  // Ajusta según la respuesta real de Adonix
+  const audioUrl =
+    data?.result?.download ||
+    data?.result?.url ||
+    data?.download ||
+    null;
+
+  if (!audioUrl) {
+    throw new Error("No se pudo obtener el audio");
+  }
+
+  return audioUrl;
+};
+
+const handler = async (m, { conn, text, usedPrefix, command }) => {
+  if (!text?.trim()) {
+    throw `⭐ 𝘌𝘯𝘷𝘪𝘢 𝘦𝘭 𝘯𝘰𝘮𝘣𝘳𝘦 𝘥𝘦 𝘭𝘢 𝘤𝘢𝘯𝘤𝘪ó𝘯\n\n» Ejemplo:\n${usedPrefix + command} Bad Bunny - Monaco`;
+  }
 
   try {
-    /* ===== INFO VIDEO ===== */
-    const info = await yts(text)
-    const v = info.videos[0]
-    if (!v) throw "No se pudo obtener info del video"
+    await conn.sendMessage(m.chat, { react: { text: "🕒", key: m.key } });
 
-    /* ===== PEDIR A MAYAPI ===== */
-    const api = await axios.get(
-      `https://mayapi.ooguy.com/ytdl`,
-      {
-        params: {
-          url: text,
-          type: "mp4",
-          quality: "1080p",
-          apikey: API_KEY
-        },
-        timeout: 60000
-      }
-    )
+    // Buscar video
+    const search = await yts({ query: text.trim(), hl: "es", gl: "ES" });
+    const video = search.videos?.[0];
+    if (!video) throw "❌ No se encontró el video";
 
-    const dlUrl = api.data?.result?.url
-    const quality = api.data?.result?.quality || "Desconocida"
-    if (!dlUrl) throw "MayAPI no devolvió el video"
-
-    /* ===== DESCARGA STREAM ===== */
-    const tmp = path.join(process.cwd(), "tmp")
-    if (!fs.existsSync(tmp)) fs.mkdirSync(tmp)
-
-    const file = path.join(tmp, `${Date.now()}.mp4`)
-    const res = await axios.get(dlUrl, { responseType: "stream" })
-
-    let size = 0
-    res.data.on("data", c => {
-      size += c.length
-      if (size > MAX_SIZE) res.data.destroy()
-    })
-
-    await pipe(res.data, fs.createWriteStream(file))
-
-    if (fs.statSync(file).size > MAX_SIZE) {
-      fs.unlinkSync(file)
-      throw "El video supera los 60MB"
+    // Límite 10 minutos
+    if (video.seconds > 600) {
+      throw "❌ El audio es muy largo (máx. 10 minutos)";
     }
 
-    /* ===== ENVIAR ===== */
-    await conn.sendMessage(
-      m.chat,
-      {
-        video: fs.readFileSync(file),
-        mimetype: "video/mp4",
-        fileName: `${v.title}.mp4`,
-        caption: `
-> *𝚈𝚃𝙼𝙿4 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁*
+    // Info del video
+    await conn.sendMessage(m.chat, {
+      text: `01:27 ━━━━━⬤────── 05:48
+*⇄ㅤ      ◁        ❚❚        ▷        ↻*
+╴𝗘𝗹𝗶𝘁𝗲 𝗕𝗼𝘁 𝗚𝗹𝗼𝗯𝗮𝗹`,
+      contextInfo: {
+        externalAdReply: {
+          title: video.title.slice(0, 60),
+          body: "",
+          thumbnailUrl: video.thumbnail,
+          mediaType: 1,
+          renderLargerThumbnail: true,
+          showAdAttribution: true,
+          sourceUrl: video.url
+        }
+      }
+    }, { quoted: m });
 
-🎵 *Título:* ${v.title}
-🎤 *Canal:* ${v.author.name}
-🕑 *Duración:* ${v.timestamp}
-📺 *Calidad:* ${quality}
-🌐 *API:* MayAPI
+    // Obtener audio con Adonix
+    const audioUrl = await getAudioUrl(video.url);
 
-> \`\`\`© powered by hernandez.xyz\`\`\`
-        `.trim(),
-        supportsStreaming: true
-      },
-      { quoted: m }
-    )
+    // Enviar audio
+    await conn.sendMessage(m.chat, {
+      audio: { url: audioUrl },
+      mimetype: "audio/mpeg",
+      fileName: `${video.title.slice(0, 30)}.mp3`.replace(/[^\w\s.-]/gi, ""),
+      ptt: false
+    }, { quoted: m });
 
-    fs.unlinkSync(file)
-    await conn.sendMessage(m.chat, { react: { text: "✅", key: m.key } })
+    await conn.sendMessage(m.chat, { react: { text: "✅", key: m.key } });
 
-  } catch (e) {
-    console.error(e)
-    conn.sendMessage(m.chat, { text: `❌ Error:\n${e}` }, { quoted: m })
+  } catch (err) {
+    console.error(err);
+    await conn.sendMessage(m.chat, { react: { text: "❌", key: m.key } });
+
+    await conn.sendMessage(m.chat, {
+      text: typeof err === "string"
+        ? err
+        : "⚠️ Error al procesar el audio, intenta con otra canción"
+    }, { quoted: m });
   }
-}
+};
 
-handler.command = ["ytmp4"]
-export default handler
+handler.command = ["playaudio"];
+handler.exp = 0;
+export default handler;
