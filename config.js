@@ -3,12 +3,12 @@ import chalk from 'chalk'
 import { fileURLToPath } from 'url'
 
 global.owner = [
-'159606034665538',
-'205819731832938',
-'226044783132714',
-'',
-'',
-''
+  '159606034665538',
+  '205819731832938',
+  '226044783132714',
+  '',
+  '',
+  ''
 ]
 
 global.emoji = '📎'
@@ -17,8 +17,18 @@ global.namebot = '𝖠𝗇𝗀𝖾𝗅 𝖡𝗈𝗍'
 global.botname = '𝖠𝗇𝗀𝖾𝗅 𝖡𝗈𝗍'
 global.banner = 'https://files.catbox.moe/igdrbi.jpg'
 global.packname = '𝖠𝗇𝗀𝖾𝗅 𝖡𝗈𝗍'
-global.author = '𝖣𝖾𝗌𝖺𝗋𝗋𝗈𝗅𝗅𝖺𝖽𝗈 𝗉𝗈𝗋 𝖠𝗇𝗀𝖾𝗅'
+global.author = '𝖣𝖾𝗌𝖺𝗋𝗅𝗅𝖺𝖽𝗈 𝗉𝗈𝗋 𝖠𝗇𝗀𝖾𝗅'
 global.sessions = '𝖠𝗇𝗀𝖾𝗅𝖡𝗈𝗍'
+
+global.APIs = {
+  sky: 'https://api-sky.ultraplus.click',
+  otra: ''
+}
+
+global.APIKeys = {
+  sky: 'Angxlllll',
+  otra: ''
+}
 
 const file = fileURLToPath(import.meta.url)
 watchFile(file, () => {
