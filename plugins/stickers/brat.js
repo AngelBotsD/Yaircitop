@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 const tempFolder = path.join(__dirname, "../tmp");
 if (!fs.existsSync(tempFolder)) fs.mkdirSync(tempFolder);
 
-const API_URL = "https://api-sky.ultraplus.click/brat";
+const API_URL = "https://api-sky.ultraplus.click";
 const API_KEY = process.env.API_KEY || "Angxlllll";
 
 // ================== utils ==================
