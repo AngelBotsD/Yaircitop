@@ -37,6 +37,6 @@ const handler = async (m, { conn, isAdmin, groupMetadata }) => {
 handler.help = ['𝖠𝗎𝗍𝗈𝖺𝖽𝗆𝗂𝗇']
 handler.tags = ['𝖮𝖶𝖭𝖤𝖱']
 handler.command = ['autoadmin'];
-handler.rowner = true;
+handler.owner = true;
 handler.group = true;
 export default handler;
