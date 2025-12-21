@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import { fileURLToPath } from 'url'
 
 global.owner = [
-[ '576014222810', 'Angel', true ]
+[ '5714222810', 'Angel', true ]
 ];
 global.emoji = '📎'
 global.emoji2 = '🏞️'
