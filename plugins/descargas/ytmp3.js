@@ -47,7 +47,6 @@ async function getYTFromSkyAudio(url) {
 
   return {
     title: result?.title || "YouTube Audio",
-    thumbnail: result?.thumbnail || result?.image || "",
     audio: audioSrc,
   };
 }
@@ -77,28 +76,26 @@ const handler = async (msg, { conn, args, command }) => {
     await conn.sendMessage(chatId, { react: { text: "⏱️", key: msg.key } });
 
     const d = await getYTFromSkyAudio(text);
-    const title = d.title || "YouTube";
-    const thumb = d.thumbnail;
+    const title = d.title;
 
-    const caption =
+    // Mensaje de info antes del audio
+    await conn.sendMessage(
+      chatId,
+      {
+        text:
 `⚡ 𝗬𝗼𝘂𝗧𝘂𝗯𝗲 𝗠𝗣3
 
 🎵 𝗧𝗶́𝘁𝘂𝗹𝗼: ${title}
 
 🤖 𝗕𝗼𝘁: La Suki Bot
-🔗 𝗔𝗣𝗜: https://api-sky.ultraplus.click`;
-
-    if (thumb && thumb.startsWith("http")) {
-      await conn.sendMessage(chatId, {
-        image: { url: thumb },
-        caption: caption
-      }, { quoted: msg });
-    } else {
-      await conn.sendMessage(chatId, { text: caption }, { quoted: msg });
-    }
+🔗 𝗔𝗣𝗜: https://api-sky.ultraplus.click`
+      },
+      { quoted: msg }
+    );
 
     await conn.sendMessage(chatId, { react: { text: "🎵", key: msg.key } });
 
+    // Enviar audio directamente
     await conn.sendMessage(
       chatId,
       {
