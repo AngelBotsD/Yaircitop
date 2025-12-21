@@ -4,123 +4,83 @@ import fs from "fs"
 import path from "path"
 import { promisify } from "util"
 import { pipeline } from "stream"
+import crypto from "crypto"
 
 const streamPipe = promisify(pipeline)
-const MAX_FILE_SIZE = 60 * 1024 * 1024
+const TMP_DIR = path.join(process.cwd(), "tmp")
+fs.rmSync(TMP_DIR, { recursive: true, force: true })
+fs.mkdirSync(TMP_DIR, { recursive: true })
 
-const handler = async (msg, { conn, text }) => {
-  if (!text || !text.trim()) {
-    return conn.sendMessage(
-      msg.key.remoteJid,
-      { text: "🎬 Ingresa el nombre de algún video" },
-      { quoted: msg }
-    )
-  }
+const VIDEO_DIR = path.join(process.cwd(), "Canciones", "video")
+fs.mkdirSync(VIDEO_DIR, { recursive: true })
 
-  await conn.sendMessage(msg.key.remoteJid, { react: { text: "🕒", key: msg.key } })
+const API_BASE = (global.APIs.sky || "").replace(/\/+$/, "")
+const API_KEY = global.APIKeys.sky || ""
 
-  const search = await yts({ query: text, hl: "es", gl: "MX" })
-  const video = search.videos[0]
-  if (!video) {
-    return conn.sendMessage(
-      msg.key.remoteJid,
-      { text: "❌ Sin resultados." },
-      { quoted: msg }
-    )
-  }
+function safeUnlink(f) { try { f && fs.existsSync(f) && fs.unlinkSync(f) } catch {} }
+function validFile(file) {
+  if (!file || !fs.existsSync(file)) return false
+  const hex = fs.readFileSync(file).slice(0, 16).toString("hex")
+  return file.endsWith(".mp4") && hex.includes("66747970")
+}
 
-  const { url: videoUrl, title, timestamp: duration, author } = video
-  const artista = author.name
+async function downloadStream(url, file) {
+  const headers = { "User-Agent": "Mozilla/5.0", Accept: "*/*" }
+  if (url.startsWith(API_BASE)) headers.apikey = API_KEY
+  const res = await axios.get(url, { responseType: "stream", headers, validateStatus: () => true })
+  if (res.status >= 400) throw `HTTP ${res.status}`
+  await streamPipe(res.data, fs.createWriteStream(file))
+  return file
+}
 
-  let videoDownloadUrl = null
-  let apiUsada = "Desconocida"
+async function callYoutubeResolve(videoUrl) {
+  const endpoint = `${API_BASE}/youtube/resolve`
+  const res = await axios.post(endpoint, { url: videoUrl, type: "video", quality: "360" }, {
+    headers: { "Content-Type": "application/json", apikey: API_KEY },
+    validateStatus: () => true
+  })
+  const data = typeof res.data === "object" ? res.data : null
+  if (!data || !data.result?.media?.dl_download) throw "Error API"
+  let dl = data.result.media.dl_download
+  if (dl.startsWith("/")) dl = API_BASE + dl
+  return dl
+}
 
-  // ⚡ Todas las APIs en paralelo, gana la más rápida
-  const tryDownloadParallel = async () => {
-    const apis = [
-      { name: "MayAPI", url: `https://mayapi.ooguy.com/ytdl?url=${encodeURIComponent(videoUrl)}&type=mp4&apikey=may-0595dca2` },
-      { name: "AdonixAPI", url: `https://api-adonix.ultraplus.click/download/ytmp4?apikey=Angxlllll&url=${encodeURIComponent(videoUrl)}` },
-      { name: "Adofreekey", url: `https://api-adonix.ultraplus.click/download/ytmp4?apikey=Angxlllll&url=${encodeURIComponent(videoUrl)}` }
-    ]
+function moveToStore(file, title) {
+  const safe = title.replace(/[^\w\s\-().]/gi, "").slice(0, 80)
+  const dest = path.join(VIDEO_DIR, `${safe}.mp4`)
+  if (fs.existsSync(dest)) { safeUnlink(file); return dest }
+  fs.renameSync(file, dest)
+  return dest
+}
 
-    const tasks = apis.map(api =>
-      axios.get(api.url, { timeout: 10000 })
-        .then(r => {
-          const link = r.data?.result?.url || r.data?.data?.url
-          if (r.data?.status && link) {
-            return { url: link, api: api.name }
-          }
-          throw new Error("Sin link válido")
-        })
-    )
+export default async function handler(msg, { conn, text }) {
+  if (!text?.trim()) return conn.sendMessage(msg.chat, { text: `✳️ Usa: .play2 <término>` }, { quoted: msg })
 
-    return Promise.any(tasks) // gana el primero que cumpla
-  }
+  await conn.sendMessage(msg.chat, { react: { text: "🕒", key: msg.key } })
+
+  const res = await yts(text)
+  const video = res.videos?.[0]
+  if (!video) return conn.sendMessage(msg.chat, { text: "❌ Sin resultados." }, { quoted: msg })
+
+  const { url, title, thumbnail } = video
+
+  await conn.sendMessage(msg.chat, { image: { url: thumbnail }, caption: `🎬 Descargando: ${title}` }, { quoted: msg })
 
   try {
-    const winner = await tryDownloadParallel()
-    videoDownloadUrl = winner.url
-    apiUsada = winner.api
+    const mediaUrl = await callYoutubeResolve(url)
+    const tmpFile = path.join(TMP_DIR, `${crypto.randomUUID()}.mp4`)
+    await downloadStream(mediaUrl, tmpFile)
+    if (!validFile(tmpFile)) throw "Archivo inválido"
+    const final = moveToStore(tmpFile, title)
 
-    // Descargar archivo y enviar
-    const tmp = path.join(process.cwd(), "tmp")
-    if (!fs.existsSync(tmp)) fs.mkdirSync(tmp)
-    const file = path.join(tmp, `${Date.now()}_vid.mp4`)
-
-    const dl = await axios.get(videoDownloadUrl, { responseType: "stream", timeout: 0 })
-    let totalSize = 0
-    dl.data.on("data", chunk => {
-      totalSize += chunk.length
-      if (totalSize > MAX_FILE_SIZE) dl.data.destroy()
-    })
-
-    await streamPipe(dl.data, fs.createWriteStream(file))
-
-    const stats = fs.statSync(file)
-    if (stats.size > MAX_FILE_SIZE) {
-      fs.unlinkSync(file)
-      throw new Error("El archivo excede el límite de 60 MB permitido por WhatsApp.")
-    }
-
-    await conn.sendMessage(
-      msg.key.remoteJid,
-      {
-        video: fs.readFileSync(file),
-        mimetype: "video/mp4",
-        fileName: `${title}.mp4`,
-        caption: `
-> 𝚅𝙸𝙳𝙴𝙾 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁
-
-⭒ ִֶָ७ ꯭🎵˙⋆｡ - 𝚃𝚒́𝚝𝚞𝚕𝚘: ${title}
-⭒ ִֶָ७ ꯭🎤˙⋆｡ - 𝙰𝚛𝚝𝚒𝚜𝚝𝚊: ${artista}
-⭒ ִֶָ७ ꯭🕑˙⋆｡ - 𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗: ${duration}
-⭒ ִֶָ७ ꯭🌐˙⋆｡ - 𝙰𝚙𝚒: ${apiUsada}
-
-» 𝙑𝙸𝘿𝙀𝙊 𝙀𝙽𝙑𝙄𝘼𝘿𝙊  🎧
-» 𝘿𝙄𝙎𝙁𝙍𝙐𝙏𝘼𝙇𝙊 𝘾𝘼𝙈𝙋𝙀𝙊𝙉..
-
-⇆‌ ㅤ◁ㅤㅤ❚❚ㅤㅤ▷ㅤ↻
-
-> \`\`\`© 𝖯𝗈𝗐𝖾𝗋𝖾𝖽 𝖻𝗒 𝗁𝖾𝗋𝗇𝖺𝗇𝖽𝖾𝗓.𝗑𝗒𝗓\`\`\`
-          `.trim(),
-        supportsStreaming: true,
-        contextInfo: { isHd: true }
-      },
-      { quoted: msg }
-    )
-
-    fs.unlinkSync(file)
-    await conn.sendMessage(msg.key.remoteJid, { react: { text: "✅", key: msg.key } })
-
+    const buffer = fs.readFileSync(final)
+    await conn.sendMessage(msg.chat, { video: buffer, fileName: `${title}.mp4`, mimetype: "video/mp4" }, { quoted: msg })
   } catch (e) {
-    console.error(e)
-    await conn.sendMessage(
-      msg.key.remoteJid,
-      { text: `⚠️ Error al descargar el video:\n\n${e.message}` },
-      { quoted: msg }
-    )
+    await conn.sendMessage(msg.chat, { text: `❌ Error: ${e}` }, { quoted: msg })
   }
 }
 
+handler.help = ["play2 <texto>"]
+handler.tags = ["descargas"]
 handler.command = ["play2"]
-export default handler
