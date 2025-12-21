@@ -3,10 +3,10 @@ import chalk from 'chalk'
 import { fileURLToPath } from 'url'
 
 global.owner = [
-  [ '521', 'Alejandro', true ]
+  [ '5215911153853', 'Alejandro', true ]
 ]; 
 
-global.suittag = ['521'] 
+global.suittag = ['5215911153853'] 
 
 
 global.emoji = '📎'
