@@ -1,102 +1,73 @@
-import axios from "axios";
-import yts from "yt-search";
+import axios from "axios"
+import yts from "yt-search"
 
-const handler = async (msg, { conn, text }) => {
-  if (!text || !text.trim()) {
-    return conn.sendMessage(
-      msg.key.remoteJid,
-      { text: "🎶 Ingresa el nombre de alguna canción" },
-      { quoted: msg }
-    );
-  }
+const API_BASE = (global.APIs.may || "").replace(/\/+$/, "")
+const API_KEY  = global.APIKeys.may || ""
 
-  await conn.sendMessage(msg.key.remoteJid, { react: { text: "🕒", key: msg.key } });
+const handler = async (msg, { conn, text, usedPrefix, command }) => {
+  const chatId = msg.key.remoteJid
+  if (!text) return conn.sendMessage(chatId, {
+    text: `✳️ Usa:\n${usedPrefix}${command} <nombre de canción o texto>\nEj:\n${usedPrefix}${command} Lemon Tree`
+  }, { quoted: msg })
 
-  // Buscar video
-  const res = await yts({ query: text, hl: "es", gl: "MX" });
-  const song = res.videos[0];
-  if (!song) {
-    return conn.sendMessage(
-      msg.key.remoteJid,
-      { text: "❌ Sin resultados." },
-      { quoted: msg }
-    );
-  }
+  await conn.sendMessage(chatId, { react: { text: "🕒", key: msg.key } })
 
-  const { url: videoUrl, title, timestamp: duration, author, thumbnail } = song;
-  const artista = author.name;
-
-  // Función para intentar con varias APIs
-  const tryApi = async (apiName, urlBuilder) => {
-    try {
-      const r = await axios.get(urlBuilder(), { timeout: 7000 });
-      const audioUrl = r.data?.result?.url || r.data?.data?.url;
-      if (audioUrl) return { url: audioUrl, api: apiName };
-      throw new Error(`${apiName}: No entregó URL válido`);
-    } catch (err) {
-      throw new Error(`${apiName}: ${err.message}`);
-    }
-  };
-
-  const apis = [
-    () => tryApi("Api 1M", () => `https://mayapi.ooguy.com/ytdl?url=${encodeURIComponent(videoUrl)}&type=mp3&quality=64&apikey=may-0595dca2`),
-    () => tryApi("Api 2A", () => `https://api-adonix.ultraplus.click/download/ytmp3?apikey=AdonixKeyz11c2f6197&url=${encodeURIComponent(videoUrl)}&quality=64`),
-    () => tryApi("Api 3F", () => `https://api-adonix.ultraplus.click/download/ytmp3?apikey=Adofreekey&url=${encodeURIComponent(videoUrl)}&quality=64`),
-    () => tryApi("Vreden", () => `https://api.vreden.my.id/api/ytmp3?url=${encodeURIComponent(videoUrl)}&quality=64`),
-    () => tryApi("Zenkey", () => `https://api.zenkey.my.id/api/download/ytmp3?apikey=zenkey&url=${encodeURIComponent(videoUrl)}&quality=64`)
-  ];
+  let title = "Desconocido"
+  let author = "Desconocido"
+  let duration = "Desconocida"
+  let videoUrl = null
+  let quality = "128kbps"
 
   try {
-    const winner = await Promise.any(apis.map(api => api()));
-    const audioDownloadUrl = winner.url;
+    const search = await yts(text)
+    if (!search?.videos?.length) throw new Error("No se encontró ningún resultado")
+    const video = search.videos[0]
+    title = video.title || title
+    author = video.author?.name || author
+    duration = video.timestamp || duration
+    const videoLink = video.url
 
-    // Mensaje único con info + audio + API ganadora
-    await conn.sendMessage(
-      msg.key.remoteJid,
-      {
-        image: { url: thumbnail },
-        caption: `
-> *𝚅𝙸𝙳𝙴𝙾 𝙳𝙾𝚆𝙽𝙻𝙾𝙰𝙳𝙴𝚁*
+    const { data } = await axios.get(`${API_BASE}/ytdl?url=${encodeURIComponent(videoLink)}&type=Mp3&apikey=${API_KEY}`)
+    if (!data?.status || !data.result?.url) throw new Error(data?.message || "No se pudo obtener el audio")
+    videoUrl = data.result.url
 
-⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${title}
-⭒ ִֶָ७ ꯭🎤˙⋆｡ - *𝙰𝚛𝚝𝚒𝚜𝚝𝚊:* ${artista}
-⭒ ִֶָ७ ꯭🕑˙⋆｡ - *𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗:* ${duration}
-⭒ ִֶָ७ ꯭📺˙⋆｡ - *𝙲𝚊𝚕𝚒𝚍𝚊𝚍:* 64kbps
-⭒ ִֶָ७ ꯭🌐˙⋆｡ - *𝙰𝚙𝚒:* ${winner.api}
+    const caption = `
+> *𝚈𝚃 𝗣𝗟𝗔𝗬 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗𝗘𝗥*
 
-*» 𝘌𝘕𝘝𝘐𝘈𝘕𝘋𝘖 𝘈𝘜𝘋𝘐𝘖  🎧*
-*» 𝘈𝘎𝘜𝘈𝘙𝘋𝘓𝘌 𝘜𝘕 𝘗𝘖𝘊𝘖...*
+⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝗅𝗈:* ${title}
+⭒ ִֶָ७ ꯭🎤˙⋆｡ - *𝙰𝗋𝗍𝗂𝗌𝗍𝗮:* ${author}
+⭒ ִֶָ७ ꯭🕑˙⋆｡ - *𝙳𝚞𝗋𝗮𝗖𝗂ó𝗇:* ${duration}
+⭒ ִֶָ७ ꯭📺˙⋆｡ - *𝙲𝚊𝗅𝗂𝗱𝗮𝗱:* ${quality}
+⭒ ִֶָ७ ꯭🌐˙⋆｡ - *𝙰𝗉𝗂:* MayAPI
+
+» 𝘼𝗨𝗗𝗜𝗢 𝙴𝗡𝗩𝗜𝗔𝗗𝗢 🎧  
+» 𝘿𝗜𝗦𝗙𝗥𝗨𝗧𝗔𝗟𝗢 𝘾𝗔𝗠𝗣𝗘𝗢𝗡..
 
 ⇆‌ ㅤ◁ㅤㅤ❚❚ㅤㅤ▷ㅤ↻
 
-> \`\`\`© 𝖯𝗈𝗐𝖾𝗋𝖾𝖽 𝖻𝗒 𝗁𝖾𝗋𝗇𝖺𝗇𝖽𝖾𝗓.𝗑𝗒𝗓\`\`\`
-        `.trim()
-      },
-      { quoted: msg }
-    );
+> \`\`\`© 𝖯𝗈𝗐𝖾𝗋𝗲𝖽 𝖻𝗒 𝖠𝗇𝗀𝖾𝗅.𝗑𝗒𝗓\`\`\``
 
-    // Enviar audio
-    await conn.sendMessage(
-      msg.key.remoteJid,
-      {
-        audio: { url: audioDownloadUrl },
-        mimetype: "audio/mpeg",
-        fileName: `${title}.mp3`,
-        ptt: false
-      },
-      { quoted: msg }
-    );
+    await conn.sendMessage(chatId, { react: { text: "🕒", key: msg.key } })
+    await conn.sendMessage(chatId, { text: caption, quoted: msg })
+    await conn.sendMessage(chatId, {
+      audio: { url: videoUrl },
+      mimetype: "audio/mpeg",
+      fileName: `${title}.mp3`,
+      ptt: false
+    }, { quoted: msg })
 
-    await conn.sendMessage(msg.key.remoteJid, { react: { text: "✅", key: msg.key } });
+    await conn.sendMessage(chatId, { react: { text: "✅", key: msg.key } })
 
-  } catch (e) {
-    const errorMsg = typeof e === "string"
-      ? e
-      : `❌ *Error:* ${e.message || "Ocurrió un problema"}\n\n🔸 *Posibles soluciones:*\n• Verifica el nombre de la canción\n• Intenta con otro tema\n• Prueba más tarde`;
-
-    await conn.sendMessage(msg.key.remoteJid, { text: errorMsg }, { quoted: msg });
+  } catch (err) {
+    console.error("play error:", err)
+    await conn.sendMessage(chatId, {
+      text: `❌ Error: ${err?.message || "Fallo interno"}`
+    }, { quoted: msg })
   }
-};
+}
 
-handler.command = ["playaudio"];
-export default handler;
+handler.command = ["play", "ytplay"]
+handler.help = ["play <texto>"]
+handler.tags = ["descargas"]
+
+export default handler
