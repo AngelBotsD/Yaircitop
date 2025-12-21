@@ -29,6 +29,41 @@ export async function handler(chatUpdate) {
     m = smsg(conn, m) || m;
     if (!m) return;
 
+    /* === STICKER → COMANDO GLOBAL === */
+    try {
+      const st =
+        m.message?.stickerMessage ||
+        m.message?.ephemeralMessage?.message?.stickerMessage ||
+        null
+
+      if (st) {
+        const jsonPath = "./comandos.json"
+        if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, "{}")
+
+        const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
+        const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
+        const candidates = []
+
+        if (rawSha) {
+          if (Buffer.isBuffer(rawSha)) candidates.push(rawSha.toString("base64"))
+          else if (ArrayBuffer.isView(rawSha)) candidates.push(Buffer.from(rawSha).toString("base64"))
+          else if (typeof rawSha === "string") candidates.push(rawSha)
+        }
+
+        for (const k of candidates) {
+          if (map[k] && map[k].trim()) {
+            const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || "."
+            m.text = map[k].startsWith(pref) ? map[k] : pref + map[k]
+            console.log("✅ Sticker detectado, comando inyectado:", m.text)
+            break
+          }
+        }
+      }
+    } catch (e) {
+      console.error("❌ Error Sticker→cmd:", e)
+    }
+    /* === FIN STICKER → COMANDO === */
+
     if (global.db.data == null) {
         await global.loadDatabase();
     }
