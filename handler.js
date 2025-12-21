@@ -274,7 +274,7 @@ export async function handler(chatUpdate) {
                 return permissions[perm];
             };
 
-            const requiredPerms = ['rowner', 'owner', 'mods', 'premium', 'group', 'botAdmin', 'admin', 'private', 'restrict'];
+            const requiredPerms = ['owner', 'group', 'botAdmin', 'admin', 'private', 'restrict'];
             for (const perm of requiredPerms) {
                 if (plugin[perm] && !checkPermissions(perm)) {
                     fail(perm, m, conn);
@@ -287,7 +287,7 @@ export async function handler(chatUpdate) {
             m.exp += xp;
 
             const extra = {
-                match, usedPrefix, noPrefix, args, command, text, conn, participants, groupMetadata, user: global.db.data.users[m.sender], isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, chatUpdate, __dirname: ___dirname, __filename
+                match, usedPrefix, noPrefix, args, command, text, conn, participants, groupMetadata, user: global.db.data.users[m.sender], isOwner, isRAdmin, isAdmin, isBotAdmin, chatUpdate, __dirname: ___dirname, __filename
             };
 
             try {
