@@ -36,10 +36,11 @@ const handler = async (msg, { conn, text, usedPrefix, command }) => {
 
 
     const infoCaption = 
-`🎵 *Título:* ${title}
-🎤 *Artista:* ${author}
-⏱ *Duración:* ${duration}
-🌐 *API:* MayAPI
+`⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${title}
+⭒ ִֶָ७ ꯭🎤˙⋆｡ - *𝙰𝚛𝚝𝚒𝚜𝚝𝚊:* ${author}
+⭒ ִֶָ७ ꯭🕑˙⋆｡ - *𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗:* ${duration}
+⭒ ִֶָ७ ꯭📺˙⋆｡ - *𝙲𝚊𝚕𝚒𝚍𝚊𝚍:* 128kbps
+⭒ ִֶָ७ ꯭🌐˙⋆｡ - *𝙰𝚙𝚒:* MyAPI
 
 Generando audio...`
 
