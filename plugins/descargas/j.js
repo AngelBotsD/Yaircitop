@@ -81,7 +81,7 @@ const handler = async (msg, { conn, text, usedPrefix, command }) => {
     const url      = video.url
 
     const caption =
-`⭒ 🎵 *Título:* ${title}
+`⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${title}
 ⭒ 🎤 *Artista:* ${author}
 ⭒ 🕑 *Duración:* ${duration}
 ⭒ 🌐 *API:* MayAPI
