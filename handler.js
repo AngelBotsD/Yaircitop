@@ -5,189 +5,234 @@ import fs, { unwatchFile, watchFile } from "fs"
 import chalk from "chalk"
 import ws from "ws"
 
+/* ========= HELPERS ========= */
 const strRegex = str => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
 const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "plugins")
 
-const isNumber = x => typeof x === "number" && !isNaN(x)
-const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(resolve, ms))
+/* ========= CACHES ========= */
+global.processedMessages ||= new Set()
+global.groupCache ||= new Map()
+global.prefixRegexCache ||= new Map()
+global.stickerCmdMap ||= null
 
+global.ownerCache ||= new Set(global.owner.map(v => v.replace(/\D/g, "") + "@lid"))
+global.premsCache ||= new Set(global.prems.map(v => v.replace(/\D/g, "") + "@lid"))
+
+const globalPrefixes = Array.isArray(global.prefix) ? global.prefix : [global.prefix]
+
+/* ========= HANDLER ========= */
 export async function handler(chatUpdate) {
-this.msgqueque = this.msgqueque || []
-this.uptime = this.uptime || Date.now()
-if (!chatUpdate) return
+  if (!chatUpdate?.messages?.length) return
 
-this.pushMessage(chatUpdate.messages).catch(console.error)
-let m = chatUpdate.messages?.[chatUpdate.messages.length - 1]
-if (!m) return
+  let m = chatUpdate.messages.at(-1)
+  if (!m || m.key?.fromMe) return
 
-if (global.db.data == null)
-await global.loadDatabase()
+  const id = m.key.id
+  if (global.processedMessages.has(id)) return
+  global.processedMessages.add(id)
+  setTimeout(() => global.processedMessages.delete(id), 60_000)
 
-m = smsg(this, m) || m
-if (!m) return
-if (typeof m.text !== "string") m.text = ""
-m.exp = 0
+  if (global.db.data == null) await global.loadDatabase()
 
-const users = global.db.data.users
-const chats = global.db.data.chats
-const settingsDB = global.db.data.settings
+  m = smsg(this, m)
+  if (!m) return
+  if (typeof m.text !== "string") m.text = ""
 
-if (!users[m.sender]) users[m.sender] = { exp: 0 }
-if (!chats[m.chat]) chats[m.chat] = {}
-if (!settingsDB[this.user.jid]) settingsDB[this.user.jid] = {}
+  /* ========= DB ========= */
+  const users = global.db.data.users
+  const chats = global.db.data.chats
+  const settingsDB = global.db.data.settings
 
-const user = users[m.sender]
-const chat = chats[m.chat]
-const settings = settingsDB[this.user.jid]
+  const user = users[m.sender] ||= {
+    name: m.name,
+    premium: false,
+    banned: false,
+    bannedReason: "",
+    commands: 0
+  }
 
-/* === STICKER → COMANDO === */
-try {
-const st =
-m.message?.stickerMessage ||
-m.message?.ephemeralMessage?.message?.stickerMessage ||
-null
+  const chat = chats[m.chat] ||= {
+    isBanned: false,
+    isMute: false,
+    welcome: false,
+    sWelcome: "",
+    sBye: "",
+    detect: true,
+    primaryBot: null,
+    modoadmin: false,
+    antiLink: true
+  }
 
-if (st) {
-const jsonPath = "./comandos.json"
-if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, "{}")
-const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
+  const settings = settingsDB[this.user.jid] ||= {
+    self: false,
+    restrict: true,
+    jadibotmd: true,
+    antiPrivate: false,
+    gponly: false
+  }
 
-const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
-const hashes = []
+  /* ========= ROLES ========= */
+  const isROwner = global.ownerCache.has(m.sender)
+  const isOwner = isROwner || m.fromMe
+  const isPrems = isROwner || global.premsCache.has(m.sender) || user.premium
+  const isOwners = isOwner || m.sender === this.user.jid
 
-if (rawSha) {
-if (Buffer.isBuffer(rawSha)) hashes.push(rawSha.toString("base64"))
-else if (ArrayBuffer.isView(rawSha)) hashes.push(Buffer.from(rawSha).toString("base64"))
-else if (typeof rawSha === "string") hashes.push(rawSha)
-}
+  if (settings.self && !isOwners) return
+  if (m.isBaileys) return
 
-for (const h of hashes) {
-if (map[h]) {
-const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || "."
-m.text = (map[h].startsWith(pref) ? map[h] : pref + map[h]).toLowerCase()
-break
-}}
-}
-} catch (e) {
-console.error("Sticker error:", e)
-}
-/* === FIN STICKER === */
+  /* ========= GRUPOS (CACHE FUERTE) ========= */
+  let groupMetadata = {}
+  let participants = []
+  let userGroup = {}
+  let botGroup = {}
+  let isAdmin = false
+  let isRAdmin = false
+  let isBotAdmin = false
 
-if (opts["queque"] && m.text) {
-const q = this.msgqueque
-const id = m.id || m.key.id
-q.push(id)
-setTimeout(() => {
-const i = q.indexOf(id)
-if (i !== -1) q.splice(i, 1)
-}, 5000)
-}
+  if (m.isGroup) {
+    const cache = global.groupCache.get(m.chat)
+    if (cache && Date.now() - cache.time < 90_000) {
+      groupMetadata = cache.data
+    } else {
+      groupMetadata = await this.groupMetadata(m.chat)
+      global.groupCache.set(m.chat, { data: groupMetadata, time: Date.now() })
+    }
 
-if (m.isBaileys) return
-m.exp += Math.ceil(Math.random() * 10)
+    participants = groupMetadata.participants || []
+    userGroup = participants.find(p => p.id === m.sender) || {}
+    botGroup = participants.find(p => p.id === this.user.jid) || {}
 
-/* === METADATA SOLO INFO === */
-let groupMetadata = null
-let participants = []
+    isRAdmin = userGroup.admin === "superadmin" || m.sender === groupMetadata.owner
+    isAdmin = isRAdmin || userGroup.admin === "admin"
+    isBotAdmin = botGroup.admin === "admin" || botGroup.admin === "superadmin"
+  }
 
-if (m.isGroup) {
+  /* ========= STICKER → CMD (CACHEADO) ========= */
   try {
-    groupMetadata = await this.groupMetadata(m.chat)
-    participants = groupMetadata?.participants || []
+    const st = m.message?.stickerMessage
+    if (st) {
+      if (!global.stickerCmdMap) {
+        try {
+          global.stickerCmdMap = JSON.parse(fs.readFileSync("./comandos.json"))
+        } catch {
+          global.stickerCmdMap = {}
+        }
+      }
+
+      const sha = st.fileSha256
+      if (sha) {
+        const key = Buffer.isBuffer(sha) ? sha.toString("base64") : sha
+        const cmd = global.stickerCmdMap[key]
+        if (cmd) {
+          m.text = cmd.startsWith(globalPrefixes[0])
+            ? cmd
+            : globalPrefixes[0] + cmd
+        }
+      }
+    }
   } catch {}
+
+  /* ========= PREFIJO EARLY ========= */
+  const hasPrefix = globalPrefixes.some(p =>
+    p instanceof RegExp ? p.test(m.text) : m.text.startsWith(p)
+  )
+
+  /* ========= PLUGINS ========= */
+  for (const name in global.plugins) {
+    const plugin = global.plugins[name]
+    if (!plugin || plugin.disabled) continue
+    if (!plugin.all && !hasPrefix) continue
+
+    const __filename = join(___dirname, name)
+
+    if (typeof plugin.all === "function") {
+      await plugin.all.call(this, m, {
+        chatUpdate,
+        __dirname: ___dirname,
+        __filename,
+        user,
+        chat,
+        settings
+      }).catch(() => {})
+    }
+
+    if (!hasPrefix || typeof plugin !== "function") continue
+
+    const prefixList = plugin.customPrefix || globalPrefixes
+    const prefixes = Array.isArray(prefixList) ? prefixList : [prefixList]
+
+    let usedPrefix = null
+    for (const p of prefixes) {
+      let r = global.prefixRegexCache.get(p)
+      if (!r) {
+        r = p instanceof RegExp ? p : new RegExp(strRegex(p))
+        global.prefixRegexCache.set(p, r)
+      }
+      const m2 = r.exec(m.text)
+      if (m2) {
+        usedPrefix = m2[0]
+        break
+      }
+    }
+    if (!usedPrefix) continue
+
+    const noPrefix = m.text.slice(usedPrefix.length)
+    let [command, ...args] = noPrefix.trim().split(/\s+/)
+    command = (command || "").toLowerCase()
+    const text = args.join(" ")
+
+    const accept =
+      plugin.command instanceof RegExp
+        ? plugin.command.test(command)
+        : Array.isArray(plugin.command)
+        ? plugin.command.includes(command)
+        : plugin.command === command
+
+    if (!accept) continue
+
+    const fail = plugin.fail || global.dfail
+
+    if (plugin.rowner && !isROwner) return fail("rowner", m, this)
+    if (plugin.owner && !isOwner) return fail("owner", m, this)
+    if (plugin.premium && !isPrems) return fail("premium", m, this)
+    if (plugin.group && !m.isGroup) return fail("group", m, this)
+    if (plugin.botAdmin && !isBotAdmin) return fail("botAdmin", m, this)
+    if (plugin.admin && !isAdmin) return fail("admin", m, this)
+    if (plugin.private && m.isGroup) return fail("private", m, this)
+
+    user.commands++
+
+    await plugin.call(this, m, {
+      usedPrefix,
+      noPrefix,
+      args,
+      command,
+      text,
+      conn: this,
+      participants,
+      groupMetadata,
+      userGroup,
+      botGroup,
+      isROwner,
+      isOwner,
+      isRAdmin,
+      isAdmin,
+      isBotAdmin,
+      isPrems,
+      chatUpdate,
+      __dirname: ___dirname,
+      __filename,
+      user,
+      chat,
+      settings
+    }).catch(console.error)
+  }
 }
 
-for (const name in global.plugins) {
-const plugin = global.plugins[name]
-if (!plugin || plugin.disabled) continue
-const __filename = join(___dirname, name)
-
-/* plugin.all */
-if (typeof plugin.all === "function") {
-await plugin.all.call(this, m, {
-chatUpdate,
-groupMetadata,
-participants,
-__dirname: ___dirname,
-__filename,
-user,
-chat,
-settings
-})
-}
-
-/* prefijos */
-const prefix = plugin.customPrefix || global.prefix || "."
-const match = (prefix instanceof RegExp
-? [[prefix.exec(m.text), prefix]]
-: Array.isArray(prefix)
-? prefix.map(p => {
-const r = p instanceof RegExp ? p : new RegExp(strRegex(p))
-return [r.exec(m.text), r]
-})
-: [[new RegExp(strRegex(prefix)).exec(m.text), new RegExp(strRegex(prefix))]]
-).find(p => p[1])
-
-if (!match || !match[0]) continue
-
-const usedPrefix = match[0][0]
-const noPrefix = m.text.slice(usedPrefix.length)
-let [command, ...args] = noPrefix.trim().split(/\s+/)
-command = (command || "").toLowerCase()
-
-const accept =
-plugin.command instanceof RegExp
-? plugin.command.test(command)
-: Array.isArray(plugin.command)
-? plugin.command.includes(command)
-: plugin.command === command
-
-if (!accept) continue
-
-m.plugin = name
-m.isCommand = true
-m.exp += plugin.exp || 10
-
-let extra = {
-match,
-usedPrefix,
-noPrefix,
-args,
-command,
-text: args.join(" "),
-conn: this,
-chatUpdate,
-groupMetadata,
-participants,
-__dirname: ___dirname,
-__filename,
-user,
-chat,
-settings
-}
-
-try {
-await plugin.call(this, m, extra)
-} catch (e) {
-console.error(e)
-} finally {
-if (typeof plugin.after === "function") {
-await plugin.after.call(this, m, extra)
-}
-}
-}
-
-if (m?.sender) user.exp += m.exp
-
-try {
-if (!opts["noprint"])
-(await import("./lib/print.js")).default(m, this)
-} catch {}
-}
-
+/* ========= HOT RELOAD ========= */
 let file = global.__filename(import.meta.url, true)
 watchFile(file, async () => {
-unwatchFile(file)
-console.log(chalk.magenta("Se actualizó handler.js"))
-if (global.reloadHandler) console.log(await global.reloadHandler())
+  unwatchFile(file)
+  console.log(chalk.magenta("Se actualizo 'handler.js'"))
+  if (global.reloadHandler) console.log(await global.reloadHandler())
 })
