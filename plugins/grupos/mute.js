@@ -96,6 +96,4 @@ handler.all = async (m) => {
 handler.help = ["𝖬𝗎𝗍𝖾", "𝖴𝗇𝗆𝗎𝗍𝖾"]
 handler.tags = ["𝖦𝖱𝖴𝖯𝖮𝖲"]
 handler.command = /^(mute|unmute)$/i
-handler.group = true
-handler.admin = true
 export default handler
