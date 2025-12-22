@@ -62,27 +62,36 @@ const handler = async (m, { conn }) => {
       if (res.ok) ppBuffer = Buffer.from(await res.arrayBuffer());
     }
 
-    const buttons = [
-      {
-        buttonId: link,
-        buttonText: { displayText: "📋 Copiar link" },
-        type: 1
+    const message = {
+      interactiveMessage: {
+        header: {
+          title: groupName,
+          hasMediaAttachment: true,
+          imageMessage: ppBuffer
+        },
+        body: {
+          text: `Enlace del grupo:\n${link}`
+        },
+        footer: {
+          text: "Powered by Angel.xyz"
+        },
+        nativeFlowMessage: {
+          buttons: [
+            {
+              name: "cta_copy",
+              buttonParamsJson: JSON.stringify({
+                display_text: "📋 Copiar link",
+                copy_code: link
+              })
+            }
+          ]
+        }
       }
-    ];
+    };
 
-    await conn.sendMessage(
-      chatId,
-      {
-        image: ppBuffer,
-        caption: `*${groupName}*\n${link}`,
-        buttons,
-        headerType: 4
-      },
-      { quoted: m }
-    );
+    await conn.sendMessage(chatId, message, { quoted: m });
 
   } catch (err) {
-    console.error("⚠️ Error en comando .link:", err);
     return conn.sendMessage(chatId, { text: "❌ Ocurrió un error al generar el enlace." }, { quoted: m });
   }
 };
