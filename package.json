@@ -21,7 +21,7 @@
 "plugins":"plugins"
 },
 "dependencies":{
-"@whiskeysockets/baileys":"github:ds6/buils",
+"@whiskeysockets/baileys":"^7.0.0-rc.9",
 "@hapi/boom":"^10.0.1",
 "awesome-phonenumber":"^5.10.0",
 "acrcloud":"^1.4.0",
