@@ -27,13 +27,13 @@ export async function handler(chatUpdate) {
   if (!m) return
 
   global.processedMessages ||= new Set()
-  if (global.processedMessages.size > 5000) global.processedMessages.clear()
+  if (global.processedMessages.size > 1000) global.processedMessages.clear()
 
   const msgId = m.key?.id
   if (!msgId) return
   if (global.processedMessages.has(msgId)) return
   global.processedMessages.add(msgId)
-  setTimeout(() => global.processedMessages.delete(msgId), 60000)
+  setTimeout(() => global.processedMessages.delete(msgId), 10000)
 
   if (m.key.fromMe) return
   if (global.db.data == null) await global.loadDatabase()
@@ -143,7 +143,7 @@ export async function handler(chatUpdate) {
 
     if (opts["queque"] && m.text && !isPrems) {
       const queque = this.msgqueque
-      const time = 1000 * 5
+      const time = 5000 * 5
       const previousID = queque[queque.length - 1]
       queque.push(m.id || m.key.id)
 
@@ -169,12 +169,12 @@ export async function handler(chatUpdate) {
         global.groupCache ||= new Map()
         const cached = global.groupCache.get(m.chat)
 
-        if (cached && Date.now() - cached.time < 60000) {
+        if (cached && Date.now() - cached.time < 10000) {
           groupMetadata = cached.data
         } else {
           groupMetadata = await this.groupMetadata(m.chat)
           global.groupCache.set(m.chat, { data: groupMetadata, time: Date.now() })
-          if (global.groupCache.size > 200) {
+          if (global.groupCache.size > 100) {
             const firstKey = global.groupCache.keys().next().value
             global.groupCache.delete(firstKey)
           }
