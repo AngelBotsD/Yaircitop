@@ -1,5 +1,11 @@
 // @type {import('@whiskeysockets/baileys')}
 const { proto, generateWAMessage, areJidsSameUser } = (await import('@whiskeysockets/baileys')).default
+import { handleYTButton } from './play.js' // ruta a tu comando play
+
+// Detectar botones de YouTube
+if (id?.startsWith("yt_")) {
+  await handleYTButton.call(this, this, m, id)
+}
 
 export async function all(m, chatUpdate) {
   if (m.isBaileys) return
