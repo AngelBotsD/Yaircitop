@@ -21,7 +21,7 @@
 "plugins":"plugins"
 },
 "dependencies":{
-"@whiskeysockets/baileys": "npm:wileys",
+"@whiskeysockets/baileys": "https://github.com/Ado21/bly",
 "@hapi/boom":"^10.0.1",
 "awesome-phonenumber":"^5.10.0",
 "acrcloud":"^1.4.0",
