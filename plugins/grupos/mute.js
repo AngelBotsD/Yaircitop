@@ -32,7 +32,32 @@ async function getThumb(url) {
     } catch { return null }
 }
 
-let handler = async (m, { conn, command, isAdmin }) => {
+let handler = async (m, { conn, command }) => {
+    const chatId = m.chat
+    if (!m.isGroup) return m.reply('⚠️ Este comando solo funciona en grupos.')
+
+    const senderNum = String(m.sender || '').replace(/\D/g, '')
+
+    // metadata y admin check
+    let meta
+    try { meta = await conn.groupMetadata(chatId) } catch {
+        return m.reply('❌ No pude leer la metadata del grupo.')
+    }
+
+    const participants = Array.isArray(meta?.participants) ? meta.participants : []
+
+    const botNum = String(conn.user?.id?.split(':')[0] || '').replace(/\D/g, '')
+    const isOwner = OWNER_LID.includes(m.sender)
+    const isBot = senderNum === botNum
+    const isAdmin = participants.some(p => {
+        const ids = [p?.id, p?.jid].filter(Boolean)
+        const match = ids.some(id => String(id || '').replace(/\D/g, '') === senderNum)
+        const role = p?.admin === 'admin' || p?.admin === 'superadmin' || p?.isAdmin === true || p?.isSuperAdmin === true
+        return match && role
+    })
+
+    if (!isAdmin && !isOwner && !isBot) return m.reply('❌ Solo administradores, owner o el bot pueden usar este comando.')
+
     const user = m.quoted?.sender || m.mentionedJid?.[0]
     const sender = m.sender
 
@@ -40,8 +65,6 @@ let handler = async (m, { conn, command, isAdmin }) => {
     if (user === sender) return m.reply('❌ No puedes mutearte a ti mismo.')
     if (user === conn.user.jid) return m.reply('🤖 No puedes mutear al bot.')
     if (OWNER_LID.includes(user)) return m.reply('👑 No puedes mutear a un LID/Owner.')
-
-    if (!(isAdmin || OWNER_LID.includes(sender))) return
 
     const imgUrl = command === 'mute'
         ? 'https://telegra.ph/file/f8324d9798fa2ed2317bc.png'
@@ -73,7 +96,7 @@ let handler = async (m, { conn, command, isAdmin }) => {
     }
 }
 
-handler.before = async (m, { conn, isCommand }) => {
+handler.before = async (m, { isCommand }) => {
     if (!m.isGroup) return
     if (m.fromMe) return
     if (OWNER_LID.includes(m.sender)) return
