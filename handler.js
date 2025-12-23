@@ -201,14 +201,45 @@ console.error(e)
 }
 }
 
-const pluginPrefix = plugin.customPrefix || global.prefix
-if (
-  pluginPrefix instanceof RegExp
-    ? !pluginPrefix.test(m.text)
-    : !m.text.startsWith(pluginPrefix)
-) continue
-const noPrefix = m.text.slice(pluginPrefix.length).trim()
+const pluginPrefix = plugin.customPrefix ?? global.prefix
+
+let matchPrefix = false
+let usedPrefix = ""
+
+if (pluginPrefix instanceof RegExp) {
+const res = pluginPrefix.exec(m.text)
+if (res) {
+matchPrefix = true
+usedPrefix = res[0]
+}
+} else if (Array.isArray(pluginPrefix)) {
+for (const p of pluginPrefix) {
+if (typeof p === "string" && m.text.startsWith(p)) {
+matchPrefix = true
+usedPrefix = p
+break
+}
+if (p instanceof RegExp) {
+const r = p.exec(m.text)
+if (r) {
+matchPrefix = true
+usedPrefix = r[0]
+break
+}
+}
+}
+} else if (typeof pluginPrefix === "string") {
+if (m.text.startsWith(pluginPrefix)) {
+matchPrefix = true
+usedPrefix = pluginPrefix
+}
+}
+
+if (!matchPrefix) continue
+
+const noPrefix = m.text.slice(usedPrefix.length).trim()
 const [command, ...args] = noPrefix.split(/\s+/)
+
 const isAccept = Array.isArray(plugin.command) ? plugin.command.includes(command) : plugin.command === command
 if (!isAccept) continue
 
