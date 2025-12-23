@@ -140,7 +140,7 @@ console.error(e)
 }
 
 /* ===== A PARTIR DE AQUÍ SIGUE TU HANDLER NORMAL ===== */
-        
+let usedPrefix = ""        
 const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "plugins")
 for (const name in global.plugins) {
 const plugin = global.plugins[name]
