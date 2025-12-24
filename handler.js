@@ -238,12 +238,6 @@ if (isAccept) { global.db.data.users[m.sender].commands = (global.db.data.users[
 if (chat) {
 const botId = this.user.jid
 const primaryBotId = chat.primaryBot
-if (name !== "group-banchat.js" && chat?.isBanned && !isROwner) {
-if (!primaryBotId || primaryBotId === botId) {
-const aviso = `ꕥ El bot *${botname}* está desactivado en este grupo\n\n> ✦ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*`.trim()
-await m.reply(aviso)
-return
-}}
 if (m.text && user.banned && !isROwner) {
 const mensaje = `ꕥ Estas baneado/a, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason}\n\n> ● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`.trim()
 if (!primaryBotId || primaryBotId === botId) {
