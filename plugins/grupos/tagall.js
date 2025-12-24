@@ -1,6 +1,6 @@
 const handler = async (m, { isOwner, isAdmin, conn, args, participants }) => {
   let chat = global.db.data.chats[m.chat]
-  let emoji = chat.emojiTag || '┃'
+  let emoji = chat.emojiTag || '┊»'
 
   const pesan = args.join` `
   const groupMetadata = await conn.groupMetadata(m.chat)
