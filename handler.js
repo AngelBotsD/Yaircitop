@@ -39,6 +39,39 @@ m.exp = 0
 
 if (typeof m.text !== "string") m.text = ""
 
+
+// ================== DETECCIÓN DE MENCIÓN ==================
+let mentioned = []
+
+try {
+  mentioned = m.mentionedJid?.length
+    ? m.mentionedJid
+    : m.message?.extendedTextMessage?.contextInfo?.mentionedJid || []
+} catch (_) {}
+
+const botJid = this.user.jid
+const botTagged = mentioned.includes(botJid)
+
+// Si mencionan al bot
+if (botTagged) {
+
+  // Texto completo
+  let full = m.text || ""
+
+  // Nombre del bot sin @
+  const botTag = "@" + botJid.split("@")[0]
+
+  // Quitamos la mención del texto
+  let query = full.replace(botTag, "").trim()
+
+  // Si no escribieron texto, damos saludo
+  if (!query) query = "hola"
+
+  // Simulamos prefijo .bot
+  m.text = `.bot ${query}`
+}
+
+
 const user = global.db.data.users[m.sender] ||= {
 name: m.name,
 exp: 0,
