@@ -39,17 +39,15 @@ m.exp = 0
 
 if (typeof m.text !== "string") m.text = ""
 
-
 const normalize = jid => jid?.replace(/:[0-9]+/g, "").toLowerCase()
-
 const botJid = normalize(this?.user?.id || this?.user?.jid)
 
-m.mentionedJid =
+const mentioned =
   m.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
-  m.mentionedJid ||
+  m?.mentionedJid ||
   []
 
-const isBotMentioned = m.mentionedJid
+const isBotMentioned = mentioned
   .map(normalize)
   .includes(botJid)
 
@@ -62,7 +60,7 @@ if (isBotMentioned) {
 
   const textAfter = body.replace(/@\S+/g, "").trim()
 
-  console.log("ME MENCIONARON", { botJid, mentioned: m.mentionedJid, textAfter })
+  console.log("ME MENCIONARON", { botJid, mentioned, textAfter })
 
   await this.sendMessage(
     m.chat,
