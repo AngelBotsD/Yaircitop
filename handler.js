@@ -72,16 +72,13 @@ detect: true,
 primaryBot: null,
 modoadmin: false,
 antiLink: true,
-nsfw: false,
-economy: true,
-gacha: true
+nsfw: false
 }
 
 /* ===== DB SETTINGS ===== */
 const settings = global.db.data.settings[this.user.jid] ||= {
 self: false,
 restrict: true,
-jadibotmd: true,
 antiPrivate: false,
 gponly: false
 }
