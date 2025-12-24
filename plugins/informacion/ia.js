@@ -3,7 +3,7 @@ import axios from 'axios'
 
 let handler = async (m, { conn, usedPrefix, command }) => {
 
-  await m.react('😈')
+  await m.react('🔥')
 
   const img = 'https://delirius-apiofc.vercel.app/nsfw/girls'
 
@@ -20,7 +20,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     headerType: 4
   }, { quoted: m })
 
-  await m.react('😈')
+  await m.react('🔥')
 }
 
 handler.command = ['pack']
