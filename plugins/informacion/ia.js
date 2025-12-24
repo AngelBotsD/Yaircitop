@@ -2,8 +2,8 @@ import axios from "axios"
 import fs from "fs"
 import path from "path"
 
-const API_URL = "https://mayapi.ooguy.com"
-const API_KEY = process.env.MAYAPI_KEY || "may-684934ab"
+const API_BASE = (process.env.API_BASE || "https://api-sky.ultraplus.click").replace(/\/+$/, "")
+const API_KEY = process.env.API_KEY || "Russellxz"
 const MAX_TIMEOUT = 60000
 
 const TTL_MS = 10 * 60 * 1000
@@ -61,20 +61,25 @@ function pickTextFromApi(data) {
 }
 
 async function askGroq(prompt) {
-  const { data, status: http } = await axios.get(API_URL, {
-    params: {
-      q: prompt,
-      apikey: API_KEY
-    },
-    timeout: MAX_TIMEOUT,
-    validateStatus: s => s >= 200 && s < 600
-  })
+  const { data, status: http } = await axios.post(
+    `${API_BASE}/ai`,
+    { prompt },
+    {
+      headers: {
+        apikey: API_KEY,
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      timeout: MAX_TIMEOUT,
+      validateStatus: s => s >= 200 && s < 600,
+    }
+  )
 
-  if (http !== 200) throw new Error(`HTTP ${http}${data?.message ? ` - ${data.message}` : ""}`)
-  if (!data || data.status !== true) throw new Error(data?.message || "La API no respondió correctamente.")
+  if (http !== 200) throw new Error("HTTP error")
+  if (!data || data.status !== true) throw new Error("API error")
 
   const text = pickTextFromApi(data)
-  if (!text) throw new Error("La API respondió pero no trajo texto.")
+  if (!text) throw new Error("No text")
 
   return text
 }
@@ -91,6 +96,12 @@ function getText(m) {
 
 function isGroupJid(jid = "") {
   return typeof jid === "string" && jid.endsWith("@g.us")
+}
+
+function isMentioned(m, botJid) {
+  const ctx = m?.message?.extendedTextMessage?.contextInfo
+  const mentions = ctx?.mentionedJid || []
+  return mentions.includes(botJid)
 }
 
 function chunkText(s, n = 3500) {
@@ -116,53 +127,48 @@ function ensureGroqAutoListener(conn) {
           if (!isGroupJid(chatId)) continue
           if (m?.key?.fromMe) continue
 
-          const st = state.chats?.[chatId]
-          if (!st || isExpired(st)) {
-            if (st) {
-              delete state.chats[chatId]
-              saveState(state)
-            }
-            continue
-          }
-
           const text = getText(m)
           if (!text) continue
 
           const pref = (global.prefixes && global.prefixes[0]) || "."
           if (text.startsWith(pref)) continue
 
-          const now = Date.now()
-          if (st.busy) continue
-          if (st.lastAt && now - Number(st.lastAt) < COOLDOWN_MS) continue
+          const botJid = conn.user?.id?.split(":")[0] + "@s.whatsapp.net"
+          const mentioned = isMentioned(m, botJid)
 
-          st.busy = true
-          st.lastAt = now
-          state.chats[chatId] = st
+          const st = state.chats?.[chatId]
+          const autoActive = st && !isExpired(st)
+
+          if (!autoActive && !mentioned) continue
+
+          const now = Date.now()
+          if (st?.busy) continue
+          if (st?.lastAt && now - Number(st.lastAt) < COOLDOWN_MS) continue
+
+          const useState = st || { busy: false, lastAt: 0 }
+          useState.busy = true
+          useState.lastAt = now
+          if (autoActive) state.chats[chatId] = useState
           saveState(state)
 
           let reply = ""
           try {
             reply = await askGroq(text)
           } catch {
-            st.busy = false
-            state.chats[chatId] = st
+            useState.busy = false
+            if (autoActive) state.chats[chatId] = useState
             saveState(state)
             continue
           }
 
-          const parts = chunkText(reply, 3500)
-          for (const p of parts) {
+          for (const p of chunkText(reply)) {
             await conn.sendMessage(chatId, { text: p }, { quoted: m })
           }
 
-          st.busy = false
-          state.chats[chatId] = st
+          useState.busy = false
+          if (autoActive) state.chats[chatId] = useState
           saveState(state)
 
-          if (Date.now() > Number(st.until)) {
-            delete state.chats[chatId]
-            saveState(state)
-          }
         } catch {}
       }
     } catch {}
@@ -205,7 +211,7 @@ Estado: ${active ? `✅ ACTIVO (${mins} min aprox)` : "⛔ APAGADO"}`
       until: Date.now() + TTL_MS,
       by: msg?.key?.participant || msg?.participant || "",
       busy: false,
-      lastAt: 0
+      lastAt: 0,
     }
     saveState(state)
 
