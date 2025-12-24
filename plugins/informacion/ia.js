@@ -2,8 +2,8 @@ import axios from "axios"
 import fs from "fs"
 import path from "path"
 
-const API_BASE = (process.env.API_BASE || "https://api-sky.ultraplus.click").replace(/\/+$/, "")
-const API_KEY = process.env.API_KEY || "Russellxz"
+const API_URL = "https://mayapi.ooguy.com/ai-venice"
+const API_KEY = process.env.MAYAPI_KEY || "may-684934ab"
 const MAX_TIMEOUT = 60000
 
 const TTL_MS = 10 * 60 * 1000
@@ -61,19 +61,14 @@ function pickTextFromApi(data) {
 }
 
 async function askGroq(prompt) {
-  const { data, status: http } = await axios.post(
-    `${API_BASE}/ai`,
-    { prompt },
-    {
-      headers: {
-        apikey: API_KEY,
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      timeout: MAX_TIMEOUT,
-      validateStatus: s => s >= 200 && s < 600,
-    }
-  )
+  const { data, status: http } = await axios.get(API_URL, {
+    params: {
+      q: prompt,
+      apikey: API_KEY
+    },
+    timeout: MAX_TIMEOUT,
+    validateStatus: s => s >= 200 && s < 600
+  })
 
   if (http !== 200) throw new Error(`HTTP ${http}${data?.message ? ` - ${data.message}` : ""}`)
   if (!data || data.status !== true) throw new Error(data?.message || "La API no respondió correctamente.")
@@ -170,9 +165,7 @@ function ensureGroqAutoListener(conn) {
           }
         } catch {}
       }
-    } catch (err) {
-      console.error("groq auto listener error:", err?.message || err)
-    }
+    } catch {}
   })
 }
 
@@ -200,8 +193,8 @@ const handler = async (msg, { conn, args, command }) => {
       text:
 `🤖 *GROQ AI — AutoChat*
 ✳️ Usa:
-- ${pref}${command} on   (activa 10 min)
-- ${pref}${command} off  (desactiva)
+- ${pref}${command} on
+- ${pref}${command} off
 
 Estado: ${active ? `✅ ACTIVO (${mins} min aprox)` : "⛔ APAGADO"}`
     }, { quoted: msg })
@@ -212,12 +205,12 @@ Estado: ${active ? `✅ ACTIVO (${mins} min aprox)` : "⛔ APAGADO"}`
       until: Date.now() + TTL_MS,
       by: msg?.key?.participant || msg?.participant || "",
       busy: false,
-      lastAt: 0,
+      lastAt: 0
     }
     saveState(state)
 
     return conn.sendMessage(chatId, {
-      text: "✅ Groq AutoChat *ACTIVADO* por 10 minutos.\n(Responderé a los mensajes del grupo automáticamente.)"
+      text: "✅ Groq AutoChat ACTIVADO por 10 minutos."
     }, { quoted: msg })
   }
 
@@ -226,7 +219,7 @@ Estado: ${active ? `✅ ACTIVO (${mins} min aprox)` : "⛔ APAGADO"}`
     saveState(state)
   }
 
-  return conn.sendMessage(chatId, { text: "⛔ Groq AutoChat *DESACTIVADO*." }, { quoted: msg })
+  return conn.sendMessage(chatId, { text: "⛔ Groq AutoChat DESACTIVADO." }, { quoted: msg })
 }
 
 handler.command = ["groq"]
