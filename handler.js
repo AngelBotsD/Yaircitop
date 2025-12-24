@@ -13,11 +13,11 @@ const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(resolve, m
 const DIGITS = (s = "") => String(s).replace(/\D/g, "")
 
 const OWNER_NUMBERS = (global.owner || []).map(v =>
-  Array.isArray(v) ? DIGITS(v[0]) : DIGITS(v)
+Array.isArray(v) ? DIGITS(v[0]) : DIGITS(v)
 )
 
 function isOwnerBySender(sender) {
-  return OWNER_NUMBERS.includes(DIGITS(sender))
+return OWNER_NUMBERS.includes(DIGITS(sender))
 }
 
 export async function handler(chatUpdate) {
@@ -101,23 +101,23 @@ groupMetadata = await this.groupMetadata(m.chat)
 participants = groupMetadata.participants || []
 
 const userParticipant = participants.find(p =>
-  p.id === m.sender || p.jid === m.sender
+p.id === m.sender || p.jid === m.sender
 )
 
 const botParticipant = participants.find(p =>
-  p.id === this.user.jid || p.jid === this.user.jid
+p.id === this.user.jid || p.jid === this.user.jid
 )
 
 isRAdmin =
-  userParticipant?.admin === "superadmin" ||
-  DIGITS(m.sender) === DIGITS(groupMetadata.owner)
+userParticipant?.admin === "superadmin" ||
+DIGITS(m.sender) === DIGITS(groupMetadata.owner)
 
 isAdmin =
-  isRAdmin || userParticipant?.admin === "admin"
+isRAdmin || userParticipant?.admin === "admin"
 
 isBotAdmin =
-  botParticipant?.admin === "admin" ||
-  botParticipant?.admin === "superadmin"
+botParticipant?.admin === "admin" ||
+botParticipant?.admin === "superadmin"
 
 userGroup = userParticipant || {}
 botGroup = botParticipant || {}
@@ -294,6 +294,10 @@ console.error(err)
 }
 }
 
+} catch (err) {
+console.error(err)
+}
+}
 
 } catch (err) {
 console.error(err)
@@ -318,8 +322,8 @@ console.log(m.message)
 global.dfail = (type, m, conn) => {
 const msg = {
 rowner: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗌𝖺𝖽𝗈 𝖯𝗈𝗋 𝖬𝗂 𝖢𝗋𝖾𝖺𝖽𝗈𝗋*`,
-owner: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗍𝗂𝗅𝗂𝗓𝖺𝖽𝗈 𝖯𝗈𝗋 𝖬𝗂 𝖢𝗋𝖾𝖺𝖽𝗈𝗋*`,
-mods: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗍𝗂𝗅𝗂𝗓𝖺𝖽𝗈 𝖯𝗈𝗋 𝖽𝖾𝗌𝖺𝗋𝗋𝗈𝗅𝗅𝖺𝖽𝗈𝗋𝖾𝗌*`,
+owner: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗍𝗂𝗅𝗂𝗓𝖺𝖽𝗈 𝖯𝗈𝗋 𝖬𝗂 𝖢𝗋𝖾𝖺𝖽𝗈𝗋*`,
+mods: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗌𝖺𝖽𝗈 𝖯𝗈𝗋 𝖽𝖾𝗌𝖺𝗋𝗋𝗈𝗅𝗅𝖺𝖽𝗈𝗋𝖾𝗌*`,
 premium: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖫𝗈 𝖯𝗎𝖾𝖽𝖾𝗇 𝖴𝗍𝗂𝗅𝗂𝗓𝖺𝗋 𝖴𝗌𝗎𝖺𝗋𝗂𝗈𝗌 𝖯𝗋𝖾𝗆𝗂𝗎𝗆*`,
 group: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖥𝗎𝗇𝖼𝗂𝗈𝗇𝖺 𝖤𝗇 𝖦𝗋𝗎𝗉𝗈𝗌*`,
 private: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖲𝖾 𝖯𝗎𝖾𝖽𝖾 𝖮𝖼𝗎𝗉𝖺𝗋 𝖤𝗇 𝖤𝗅 𝖯𝗋𝗂𝗏𝖺𝖽𝗈*`,
