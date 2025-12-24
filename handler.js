@@ -39,7 +39,11 @@ m.exp = 0
 
 if (typeof m.text !== "string") m.text = ""
 
-const normalize = jid => jid?.replace(/:[0-9]+/g, "").toLowerCase()
+const normalize = v => String(v || "")
+  .trim()
+  .replace(/:.+$/, "")
+  .toLowerCase()
+
 const botJid = normalize(this?.user?.id || this?.user?.jid)
 
 const mentioned =
@@ -50,6 +54,7 @@ const mentioned =
 const isBotMentioned = mentioned
   .map(normalize)
   .includes(botJid)
+
 console.log({
   bot: botJid,
   mentioned,
