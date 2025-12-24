@@ -159,7 +159,7 @@ if (plugin.tags && plugin.tags.includes("admin")) {
 continue
 }}
 const strRegex = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
-const pluginPrefix = plugin.customPrefix || conn.prefix || global.prefix
+const pluginPrefix = plugin.customPrefix || this.prefix || global.prefix
 const match = (pluginPrefix instanceof RegExp ?
 [[pluginPrefix.exec(m.text), pluginPrefix]] :
 Array.isArray(pluginPrefix) ?
