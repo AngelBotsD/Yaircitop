@@ -1,16 +1,28 @@
-import fetch from 'node-fetch';
+let handler = async (m, { conn, usedPrefix, command }) => {
 
-let handler = async(m, { conn, text, usedPrefix, command }) => {
+    let txt = 'Pack 🔥';  
+    let img = 'https://delirius-apiofc.vercel.app/nsfw/girls';  
 
-m.react('🕑');
+    let buttons = [  
+        {  
+            buttonId: `.pack`,  
+            buttonText: { displayText: "Ver más" },  
+            type: 1  
+        }  
+    ];  
 
-let txt = 'Pack🔥🔥🔥\n> Pon De Nuevo .pack para mirar el siguiente ✨';
+    await conn.sendMessage(  
+        m.chat,  
+        {  
+            image: { url: img },  
+            caption: txt,  
+            buttons: buttons,  
+            viewOnce: false
+        },  
+        { quoted: m }  
+    );
 
-let img = 'https://delirius-apiofc.vercel.app/nsfw/girls';
-
-m.react('✅');
-conn.sendMessage(m.chat, { image: { url: img }, caption: txt }, { quoted: fkontak });
-}
+};
 
 handler.command = ['pack'];
 
