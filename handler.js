@@ -44,8 +44,6 @@ if (typeof m.text !== "string") m.text = ""
 const user = global.db.data.users[m.sender] ||= {
 name: m.name,
 exp: 0,
-coin: 0,
-bank: 0,
 level: 0,
 health: 100,
 genre: "",
