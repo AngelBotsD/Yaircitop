@@ -6,7 +6,7 @@ const DIGITS = (s = "") => String(s).replace(/\D/g, "")
 function lidParser(participants = []) {
   try {
     return participants.map(v => ({
-      id: typeof v?.id === "string" && v.id.endsWith("@lid") && v.jid ? v.jid : v.id,
+      id: (typeof v?.id === "string" && v.id.endsWith("@lid") && v.jid) ? v.jid : v.id,
       admin: v?.admin ?? null,
       raw: v
     }))
@@ -22,8 +22,7 @@ async function isAdminByNumber(conn, chatId, number) {
     const norm = lidParser(raw)
 
     for (let i = 0; i < raw.length; i++) {
-      const r = raw[i]
-      const n = norm[i]
+      const r = raw[i], n = norm[i]
       const isAdm =
         r?.admin === "admin" ||
         r?.admin === "superadmin" ||
@@ -50,7 +49,6 @@ async function mapJidsToReal(conn, chatId, jids = []) {
 
     for (const jid of jids) {
       if (typeof jid !== "string") continue
-
       if (jid.endsWith("@s.whatsapp.net")) {
         out.push(jid)
         continue
@@ -63,8 +61,8 @@ async function mapJidsToReal(conn, chatId, jids = []) {
             raw[idx]?.jid?.endsWith("@s.whatsapp.net")
               ? raw[idx].jid
               : norm[idx]?.id?.endsWith("@s.whatsapp.net")
-              ? norm[idx].id
-              : null
+                ? norm[idx].id
+                : null
 
           if (real) {
             out.push(real)
@@ -73,8 +71,9 @@ async function mapJidsToReal(conn, chatId, jids = []) {
         }
 
         const d = DIGITS(jid)
-        const hit = norm.find(
-          n => DIGITS(n?.id || "") === d || DIGITS(n?.raw?.id || "") === d
+        const hit = norm.find(n =>
+          DIGITS(n?.id || "") === d ||
+          DIGITS(n?.raw?.id || "") === d
         )
 
         if (hit?.id?.endsWith("@s.whatsapp.net")) {
@@ -89,31 +88,26 @@ async function mapJidsToReal(conn, chatId, jids = []) {
     return jids
   }
 
-  return [...new Set(out)]
+  return Array.from(new Set(out))
 }
 
-let handler = async (m, { conn }) => {
-  const chatId = m.chat
+let handler = async (msg, { conn }) => {
+  const chatId = msg.key.remoteJid
 
-  const user =
-    m.mentionedJid?.[0] ||
-    m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0] ||
-    m.quoted?.sender
+  const ctx = msg.message?.extendedTextMessage?.contextInfo
+  const mentioned = Array.isArray(ctx?.mentionedJid) ? ctx.mentionedJid : []
+  const replied = ctx?.participant ? [ctx.participant] : []
 
-  if (!user) {
+  const targets = [...mentioned, ...replied]
+
+  if (!targets.length) {
     await conn.sendMessage(chatId, {
-      text: "☁️ *Responde o menciona al usuario que deseas promover*",
-      contextInfo: {
-        stanzaId: m.key.id,
-        participant: m.sender,
-        quotedMessage: m.message
-      }
-    })
-    await conn.sendMessage(chatId, { react: { text: "🏞️", key: m.key } })
+      text: "📌 *Menciona o responde al usuario que quieres promover.*"
+    }, { quoted: msg })
     return
   }
 
-  const realTargets = await mapJidsToReal(conn, chatId, [user])
+  const realTargets = await mapJidsToReal(conn, chatId, targets)
 
   let meta = {}
   try {
@@ -123,11 +117,10 @@ let handler = async (m, { conn }) => {
   const raw = Array.isArray(meta?.participants) ? meta.participants : []
   const norm = lidParser(raw)
 
-  const isAdminJid = jid => {
+  const isAdminJid = (jid) => {
     const idx = norm.findIndex(p => p?.id === jid)
     if (idx >= 0) {
-      const r = raw[idx]
-      const n = norm[idx]
+      const r = raw[idx], n = norm[idx]
       return (
         r?.admin === "admin" ||
         r?.admin === "superadmin" ||
@@ -149,27 +142,38 @@ let handler = async (m, { conn }) => {
     else toPromote.push(jid)
   }
 
-  if (already.length) {
-    await conn.sendMessage(chatId, {
-      text: "☁️ *Este usuario ya es Admin*"
-    }, { quoted: m })
-    await conn.sendMessage(chatId, { react: { text: "🧾", key: m.key } })
-    return
+  let ok = []
+  let fail = []
+
+  if (toPromote.length) {
+    try {
+      await conn.groupParticipantsUpdate(chatId, toPromote, "promote")
+      ok = toPromote
+    } catch {
+      fail = toPromote
+    }
   }
 
-  try {
-    await conn.groupParticipantsUpdate(chatId, toPromote, "promote")
-    await conn.sendMessage(chatId, { react: { text: "✅", key: m.key } })
-  } catch (e) {
-    console.error(e)
-  }
+  const tag = jid => `@${DIGITS(jid)}`
+  const lines = []
+
+  if (ok.length) lines.push(`✅ *Admin otorgado a:* ${ok.map(tag).join(", ")}`)
+  if (already.length) lines.push(`ℹ️ *Ya eran admin:* ${already.map(tag).join(", ")}`)
+  if (fail.length) lines.push(`❌ *No se pudo promover:* ${fail.map(tag).join(", ")}`)
+
+  await conn.sendMessage(chatId, {
+    text: lines.join("\n"),
+    mentions: [...ok, ...already, ...fail]
+  }, { quoted: msg })
+
+  await conn.sendMessage(chatId, {
+    react: { text: ok.length ? "✅" : "⚠️", key: msg.key }
+  }).catch(() => {})
 }
 
-handler.help = ["𝖯𝗋𝗈𝗆𝗈𝗍𝖾"]
-handler.tags = ["𝖦𝖱𝖴𝖯𝖮𝖲"]
-handler.customPrefix = /^\.?promote/i
-handler.command = new RegExp()
 handler.group = true
 handler.admin = true
+handler.customPrefix = /^\.?promote/i
+handler.command = new RegExp()
 
 export default handler
