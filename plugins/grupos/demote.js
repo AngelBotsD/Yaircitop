@@ -2,7 +2,6 @@ let handler = async (m, { conn, participants }) => {
 
   const tag = jid => `@${jid.split('@')[0]}`
 
-  // Un solo usuario: mención o reply
   let user =
     m.mentionedJid?.[0] ||
     m.quoted?.sender
