@@ -1,10 +1,6 @@
-const handler = async (m, { isOwner, isAdmin, conn, args, participants }) => {
+const handler = async (m, { conn, args, participants }) => {
   let chat = global.db.data.chats[m.chat]
-  let emoji = chat.emojiTag || '┊»'
-
-  const pesan = args.join` `
-  const groupMetadata = await conn.groupMetadata(m.chat)
-  const groupName = groupMetadata.subject
+  let emoji = chat?.emojiTag || '┊»'
 
   const countryFlags = {
     '1':'🇺🇸','7':'🇷🇺','20':'🇪🇬','27':'🇿🇦','30':'🇬🇷','31':'🇳🇱','32':'🇧🇪','33':'🇫🇷','34':'🇪🇸','36':'🇭🇺','39':'🇮🇹',
@@ -37,42 +33,41 @@ const handler = async (m, { isOwner, isAdmin, conn, args, participants }) => {
     '992':'🇹🇯','993':'🇹🇲','994':'🇦🇿','995':'🇬🇪','996':'🇰🇬','998':'🇺🇿'
   }
 
-  const getCountryPrefix = (jid) => {
+  const getCountryPrefix = jid => {
     const phone = jid.split('@')[0].replace(/^0+/, '')
     const prefixes = Object.keys(countryFlags).sort((a, b) => b.length - a.length)
     for (let p of prefixes) if (phone.startsWith(p)) return p
     return 'other'
   }
 
-  await conn.sendMessage(m.chat, { react: { text: '🗣️', key: m.key } })
-
-  let teks = `*!  MENCION GENERAL  !*\n   *PARA ${participants.length} MIEMBROS* 🗣️\n\n`
-
-  let grouped = {}
-
-  for (const mem of participants) {
-    let jid = mem.jid || mem.id
-    let prefix = getCountryPrefix(jid)
-    if (!grouped[prefix]) grouped[prefix] = []
-    grouped[prefix].push(jid)
-  }
-
-  for (const prefix of Object.keys(grouped)) {
-    for (const jid of grouped[prefix]) {
-      teks += `${emoji} ${countryFlags[prefix] || '🏳️'} @${jid.split('@')[0]}\n`
-    }
-  }
-
   await conn.sendMessage(m.chat, {
-    text: teks,
-    mentions: participants.map(p => p.jid || p.id)
-  }, { quoted: m })
+    react: { text: '🗣️', key: m.key }
+  })
+
+  let teks = `*!  MENCION GENERAL  !*\n*PARA ${participants.length} MIEMBROS* 🗣️\n\n`
+
+  for (const p of participants) {
+    const jid = p.jid || p.id
+    const prefix = getCountryPrefix(jid)
+    teks += `${emoji} ${countryFlags[prefix] || '🏳️'} @${jid.split('@')[0]}\n`
+  }
+
+  await conn.sendMessage(
+    m.chat,
+    {
+      text: teks,
+      mentions: participants.map(p => p.jid || p.id)
+    },
+    { quoted: m }
+  )
 }
 
-handler.help = ["𝖳𝗈𝖽𝗈𝗌"];
-handler.tags = ["𝖦𝖱𝖴𝖯𝖮𝖲"];
-handler.customPrefix = /^\.?(todos|invocar|invocacion|invocación)$/i;
-handler.command = new RegExp();
-handler.group = true;
-handler.admin = true;
-export default handler;
+handler.help = ['𝖳𝗈𝖽𝗈𝗌']
+handler.tags = ['𝖦𝖱𝖴𝖯𝖮𝖲']
+handler.customPrefix = /^\.?(todos|invocar|invocacion|invocación)$/i
+handler.command = new RegExp()
+
+handler.group = true
+handler.admin = true
+
+export default handler
