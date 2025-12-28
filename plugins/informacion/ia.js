@@ -58,7 +58,22 @@ const gemini = {
 let handler = async (m, { conn }) => {
   if (!m.text) return
 
-  let text = m.text.replace(/^@\S*\s*/i, "").trim()
+  const botName = conn.user.name?.toLowerCase() || ''
+  const botNumber = conn.user.id.split(':')[0]
+  const textLower = m.text.toLowerCase()
+
+  const isForBot =
+    textLower.includes(`@${botName}`) ||
+    textLower.includes(botName) ||
+    textLower.includes(`@${botNumber}`)
+
+  if (!isForBot) return
+
+  let text = m.text
+    .replace(new RegExp(`@?${botName}`, 'ig'), '')
+    .replace(new RegExp(`@?${botNumber}`, 'g'), '')
+    .replace(/^@\S+\s*/i, '')
+    .trim()
 
   if (!text) {
     return m.reply("hola si")
