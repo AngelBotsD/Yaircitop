@@ -56,13 +56,16 @@ const gemini = {
 }
 
 let handler = async (m, { conn }) => {
-  const mentioned =
-    m.mentionedJid ||
-    m.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
-    []
-
-  if (!mentioned.includes(conn.user.jid)) return
   if (!m.text) return
+
+  const botNumber = conn.user.jid.split("@")[0]
+
+  const mentionMatch = m.text.match(/@(\d{5,})/g)
+  if (!mentionMatch) return
+
+  const mentionedNumbers = mentionMatch.map(v => v.replace("@", ""))
+
+  if (!mentionedNumbers.includes(botNumber)) return
 
   let text = m.text.replace(/@\d+\s*/g, "").trim()
 
