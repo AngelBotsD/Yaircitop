@@ -19,7 +19,6 @@ const gemini = {
   },
 
   ask: async (prompt) => {
-
     let cookie = await gemini.getNewCookie()
 
     const body = new URLSearchParams({
@@ -56,70 +55,25 @@ const gemini = {
   }
 }
 
-
 let handler = async (m, { conn }) => {
+  if (!m.mentionedJid || !m.mentionedJid.length) return
+  if (!m.mentionedJid.includes(conn.user.jid)) return
+  if (!m.text) return
 
-  // ----------------------------
-  // 1️⃣ TEXTO REAL
-  // ----------------------------
-  let text =
-    m.text ||
-    m.message?.conversation ||
-    m.message?.extendedTextMessage?.text ||
-    ""
+  let text = m.text.replace(/^@\S*\s*/i, "").trim()
 
-  if (!text) return
+  if (!text) {
+    return m.reply("hola si")
+  }
 
-
-  // ----------------------------
-  // 2️⃣ JID REAL DEL BOT
-  // ----------------------------
-  const botJid = conn?.user?.id || conn?.user?.jid
-
-
-  // ----------------------------
-  // 3️⃣ OBTENER TODAS LAS MENCIONES
-  // ----------------------------
-  const ctx =
-    m?.msg?.contextInfo ||
-    m?.message?.extendedTextMessage?.contextInfo ||
-    m?.message?.imageMessage?.contextInfo ||
-    m?.message?.videoMessage?.contextInfo ||
-    {}
-
-  const mentioned = ctx?.mentionedJid || []
-
-
-  // ----------------------------
-  // 4️⃣ VALIDAR
-  // ----------------------------
-  if (!mentioned.includes(botJid)) return
-
-
-  // ----------------------------
-  // 5️⃣ LIMPIAR TEXTO
-  // ----------------------------
-  text = text.replace(/@\S+/g, "").trim()
-
-  if (!text) return m.reply("Hola 👋")
-
-
-  // ----------------------------
-  // 6️⃣ IA
-  // ----------------------------
   try {
-
     await conn.sendPresenceUpdate("composing", m.chat)
-
-    const reply = await gemini.ask(text)
-
-    await m.reply(reply)
-
+    const res = await gemini.ask(text)
+    await m.reply(res)
   } catch (e) {
     console.error(e)
     await m.reply("❌ Error con la IA")
   }
-
 }
 
 handler.customPrefix = /^@/i
