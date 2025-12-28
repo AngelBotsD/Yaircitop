@@ -19,7 +19,7 @@ const gemini = {
   },
 
   ask: async (prompt) => {
-    let cookie = await gemini.getNewCookie()
+    const cookie = await gemini.getNewCookie()
 
     const body = new URLSearchParams({
       "f.req": JSON.stringify([
@@ -56,11 +56,15 @@ const gemini = {
 }
 
 let handler = async (m, { conn }) => {
-  if (!m.mentionedJid || !m.mentionedJid.length) return
-  if (!m.mentionedJid.includes(conn.user.jid)) return
+  const mentioned =
+    m.mentionedJid ||
+    m.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
+    []
+
+  if (!mentioned.includes(conn.user.jid)) return
   if (!m.text) return
 
-  let text = m.text.replace(/^@\S*\s*/i, "").trim()
+  let text = m.text.replace(/@\d+\s*/g, "").trim()
 
   if (!text) {
     return m.reply("hola si")
