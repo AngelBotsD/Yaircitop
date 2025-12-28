@@ -18,7 +18,7 @@ const gemini = {
     return cookie.split(";")[0]
   },
 
-  ask: async (prompt) => {
+  ask: async (prompt, previousId = null) => {
     let cookie = await gemini.getNewCookie()
 
     const body = new URLSearchParams({
@@ -58,14 +58,11 @@ const gemini = {
 let handler = async (m, { conn }) => {
   if (!m.text) return
 
-  const mentioned =
-    m.message?.extendedTextMessage?.contextInfo?.mentionedJid || []
+  let text = m.text.replace(/^@\S*\s*/i, "").trim()
 
-  if (!mentioned.includes(conn.user.jid)) return
-
-  let text = m.text.replace(/^@\S+\s*/i, '').trim()
-
-  if (!text) return m.reply("hola si")
+  if (!text) {
+    return m.reply("hola si")
+  }
 
   try {
     await conn.sendPresenceUpdate("composing", m.chat)
