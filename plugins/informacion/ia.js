@@ -1,5 +1,14 @@
 import fetch from 'node-fetch'
 
+function getMentionedJids(m = {}) {
+  return (
+    m?.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
+    m?.msg?.contextInfo?.mentionedJid ||
+    m?.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
+    []
+  )
+}
+
 const gemini = {
   getNewCookie: async () => {
     const res = await fetch(
@@ -58,22 +67,17 @@ const gemini = {
 let handler = async (m, { conn }) => {
   if (!m.text) return
 
-  // ⬇️ Obtener JID del bot
-  const botJid = conn.user?.id || conn.user?.jid
+  const botJid = conn.user?.id?.split(":")[0] + "@s.whatsapp.net"
 
-  // ⬇️ Obtener los mencionados del mensaje
-  const mentioned = m?.mentionedJid || 
-    m.message?.extendedTextMessage?.contextInfo?.mentionedJid || []
+  const mentioned = getMentionedJids(m)
 
-  // ⬇️ SI NO mencionan al bot → salir
+  // 👉 SI NO MENCIONAN AL BOT → NO SIGUE
   if (!mentioned.includes(botJid)) return
 
-  // Quitar el @ del bot del mensaje
+  // quitar el @ por estética
   let text = m.text.replace(/@\S+\s*/i, "").trim()
 
-  if (!text) {
-    return m.reply("hola si")
-  }
+  if (!text) return m.reply("hola si")
 
   try {
     await conn.sendPresenceUpdate("composing", m.chat)
@@ -85,7 +89,6 @@ let handler = async (m, { conn }) => {
   }
 }
 
-// ❌ ya NO usamos /^@/
 handler.command = new RegExp
 handler.tags = ['ai']
 
