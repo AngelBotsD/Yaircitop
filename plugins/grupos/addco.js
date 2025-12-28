@@ -22,6 +22,7 @@ let handler = async (m, { conn }) => {
   const body =
     m.message?.conversation ||
     m.message?.extendedTextMessage?.text ||
+    m.message?.extendedTextMessage?.contextInfo?.text ||
     ""
 
   const text = body.trim().split(/\s+/).slice(1).join(" ").trim()
