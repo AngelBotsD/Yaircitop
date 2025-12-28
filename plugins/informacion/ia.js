@@ -1,14 +1,5 @@
 import fetch from 'node-fetch'
 
-function getMentionedJids(m = {}) {
-  return (
-    m?.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
-    m?.msg?.contextInfo?.mentionedJid ||
-    m?.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
-    []
-  )
-}
-
 const gemini = {
   getNewCookie: async () => {
     const res = await fetch(
@@ -28,17 +19,17 @@ const gemini = {
   },
 
   ask: async (prompt) => {
-    let cookie = await gemini.getNewCookie()
+    const cookie = await gemini.getNewCookie()
 
     const body = new URLSearchParams({
       "f.req": JSON.stringify([
         null,
-        JSON.stringify([[prompt], ["en-US"], null])
+        JSON.stringify([[prompt], ["es-MX"], null])
       ])
     })
 
     const res = await fetch(
-      "https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?hl=en-US&rt=c",
+      "https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?hl=es-MX&rt=c",
       {
         method: "POST",
         headers: {
@@ -64,28 +55,44 @@ const gemini = {
   }
 }
 
+
 let handler = async (m, { conn }) => {
-  if (!m.text) return
+  if (!m?.text) return
 
-  const botJid = conn.user?.id?.split(":")[0] + "@s.whatsapp.net"
+  // 🟡 Normalizar JID del bot
+  const botJid =
+    (conn.user?.id?.split(':')[0] + '@s.whatsapp.net') ||
+    conn.user?.jid
 
-  const mentioned = getMentionedJids(m)
+  // 🟡 Obtener contextInfo de cualquier tipo de mensaje
+  const ctx =
+    m.msg?.contextInfo ||
+    m.message?.extendedTextMessage?.contextInfo ||
+    m.message?.imageMessage?.contextInfo ||
+    m.message?.videoMessage?.contextInfo ||
+    m.message?.buttonsMessage?.contextInfo ||
+    m.message?.templateButtonReplyMessage?.contextInfo ||
+    {}
 
-  // 👉 SI NO MENCIONAN AL BOT → NO SIGUE
+  const mentioned = ctx.mentionedJid || []
+
+  // 🛑 Si NO mencionan al bot → salir
   if (!mentioned.includes(botJid)) return
 
-  // quitar el @ por estética
-  let text = m.text.replace(/@\S+\s*/i, "").trim()
+  // 🧹 Limpiar @ del texto
+  const clean = m.text.replace(/@\S+/g, "").trim()
 
-  if (!text) return m.reply("hola si")
+  if (!clean) return m.reply("👋 Hola, dime algo y te respondo.")
 
   try {
     await conn.sendPresenceUpdate("composing", m.chat)
-    const res = await gemini.ask(text)
-    await m.reply(res)
+
+    const reply = await gemini.ask(clean)
+
+    return m.reply(reply || "⚠️ No recibí respuesta")
   } catch (e) {
     console.error(e)
-    await m.reply("❌ Error con la IA")
+    return m.reply("❌ Error al conectar con la IA")
   }
 }
 
