@@ -43,15 +43,20 @@ export async function handler(m, { conn }) {
   else if (ArrayBuffer.isView(rawSha)) hash = Buffer.from(rawSha).toString("base64")
   else hash = rawSha.toString()
 
-  if (!map[hash]) {
+  if (!map[m.chat] || !map[m.chat][hash]) {
     return conn.sendMessage(
       m.chat,
-      { text: "❌ Este sticker no tiene un comando vinculado." },
+      { text: "❌ Este sticker no tiene un comando vinculado en este grupo." },
       { quoted: m }
     )
   }
 
-  delete map[hash]
+  delete map[m.chat][hash]
+
+  if (Object.keys(map[m.chat]).length === 0) {
+    delete map[m.chat]
+  }
+
   fs.writeFileSync(jsonPath, JSON.stringify(map, null, 2))
 
   await conn.sendMessage(m.chat, {
@@ -60,7 +65,7 @@ export async function handler(m, { conn }) {
 
   return conn.sendMessage(
     m.chat,
-    { text: "✅ Comando vinculado al sticker eliminado." },
+    { text: "✅ Comando vinculado al sticker eliminado solo en este grupo." },
     { quoted: m }
   )
 }
@@ -68,4 +73,5 @@ export async function handler(m, { conn }) {
 handler.command = ["delco"]
 handler.group = true
 handler.admin = true
+
 export default handler
