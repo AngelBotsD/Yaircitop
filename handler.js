@@ -39,47 +39,55 @@ export async function handler(chatUpdate) {
 
     if (typeof m.text !== "string") m.text = ""
 
-    try {
-      const st =
-        m.message?.stickerMessage ||
-        m.message?.ephemeralMessage?.message?.stickerMessage ||
-        m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage ||
-        m.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage
+   try {
+  const st =
+    m.message?.stickerMessage ||
+    m.message?.ephemeralMessage?.message?.stickerMessage ||
+    null
 
-      if (st && m.isGroup) {
-        const jsonPath = "./comandos.json"
-        if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, "{}")
+  if (st && m.isGroup) {
+    const jsonPath = './comandos.json'
+    if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, '{}')
 
-        const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
-        const groupMap = map[m.chat]
-        if (!groupMap) return
+    const map = JSON.parse(fs.readFileSync(jsonPath, 'utf-8') || '{}')
 
-        const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
-        if (!rawSha) return
+    const groupMap = map[m.chat]
+    if (!groupMap) return
 
-        const candidates = []
-        if (Buffer.isBuffer(rawSha)) candidates.push(rawSha.toString("base64"))
-        else if (ArrayBuffer.isView(rawSha)) candidates.push(Buffer.from(rawSha).toString("base64"))
-        else if (typeof rawSha === "string") candidates.push(rawSha)
+    const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
+    const candidates = []
 
-        let mapped = null
-        for (const k of candidates) {
-          if (groupMap[k] && groupMap[k].trim()) {
-            mapped = groupMap[k].trim()
-            break
-          }
-        }
-
-        if (mapped) {
-          const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || global.prefix || "."
-          const injected = mapped.startsWith(pref) ? mapped : pref + mapped
-          m.text = injected.toLowerCase()
-          m.isCommand = true
-        }
+    if (rawSha) {
+      if (Buffer.isBuffer(rawSha)) {
+        candidates.push(rawSha.toString('base64'))
+      } else if (ArrayBuffer.isView(rawSha)) {
+        candidates.push(Buffer.from(rawSha).toString('base64'))
+      } else if (typeof rawSha === 'string') {
+        candidates.push(rawSha)
       }
-    } catch (e) {
-      console.error(e)
     }
+
+    let mapped = null
+    for (const k of candidates) {
+      if (groupMap[k] && groupMap[k].trim()) {
+        mapped = groupMap[k].trim()
+        break
+      }
+    }
+
+    if (mapped) {
+      const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || '.'
+      const injected = mapped.startsWith(pref) ? mapped : pref + mapped
+
+      m.text = injected.toLowerCase()
+      m.isCommand = true
+
+      console.log('✅ Sticker→cmd (solo grupo):', m.chat, m.text)
+    }
+  }
+} catch (e) {
+  console.error('❌ Error Sticker→cmd:', e)
+}
 
     const user = global.db.data.users[m.sender] ||= {
       name: m.name,
