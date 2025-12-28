@@ -24,12 +24,12 @@ const gemini = {
     const body = new URLSearchParams({
       "f.req": JSON.stringify([
         null,
-        JSON.stringify([[prompt], ["es-MX"], null])
+        JSON.stringify([[prompt], ["en-US"], null])
       ])
     })
 
     const res = await fetch(
-      "https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?hl=es-MX&rt=c",
+      "https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?hl=en-US&rt=c",
       {
         method: "POST",
         headers: {
@@ -57,45 +57,42 @@ const gemini = {
 
 
 let handler = async (m, { conn }) => {
-  if (!m?.text) return
+  if (!m.text) return
 
-  // 🟡 Normalizar JID del bot
+  // ⭐ JID REAL del bot
   const botJid =
     (conn.user?.id?.split(':')[0] + '@s.whatsapp.net') ||
     conn.user?.jid
 
-  // 🟡 Obtener contextInfo de cualquier tipo de mensaje
+  // ⭐ ContextInfo según el tipo de mensaje
   const ctx =
     m.msg?.contextInfo ||
     m.message?.extendedTextMessage?.contextInfo ||
-    m.message?.imageMessage?.contextInfo ||
-    m.message?.videoMessage?.contextInfo ||
-    m.message?.buttonsMessage?.contextInfo ||
-    m.message?.templateButtonReplyMessage?.contextInfo ||
     {}
 
+  // ⭐ Lista de mencionados
   const mentioned = ctx.mentionedJid || []
 
-  // 🛑 Si NO mencionan al bot → salir
+  // 🛑 Si NO mencionan al bot → NO responder
   if (!mentioned.includes(botJid)) return
 
-  // 🧹 Limpiar @ del texto
-  const clean = m.text.replace(/@\S+/g, "").trim()
+  // 🧹 quitar el @ del bot del texto
+  let text = m.text.replace(/@\S+/g, "").trim()
 
-  if (!clean) return m.reply("👋 Hola, dime algo y te respondo.")
+  if (!text) return m.reply("hola si")
 
   try {
     await conn.sendPresenceUpdate("composing", m.chat)
-
-    const reply = await gemini.ask(clean)
-
-    return m.reply(reply || "⚠️ No recibí respuesta")
+    const res = await gemini.ask(text)
+    await m.reply(res)
   } catch (e) {
     console.error(e)
-    return m.reply("❌ Error al conectar con la IA")
+    await m.reply("❌ Error con la IA")
   }
 }
 
+// ⛔ seguimos usando tu filtro de @
+handler.customPrefix = /^@/i
 handler.command = new RegExp
 handler.tags = ['ai']
 
