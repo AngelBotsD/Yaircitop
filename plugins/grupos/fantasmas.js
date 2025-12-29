@@ -5,6 +5,10 @@ const TIMEOUT = 3 * 24 * 60 * 60 * 1000
 
 let db = {}
 
+if (!fs.existsSync(FILE)) {
+  fs.writeFileSync(FILE, JSON.stringify({}, null, 2))
+}
+
 try {
   db = JSON.parse(fs.readFileSync(FILE))
 } catch {
@@ -19,22 +23,23 @@ export async function initFantasma(conn) {
   conn.ev.on("messages.upsert", async ({ messages }) => {
     const m = messages[0]
     if (!m?.message) return
-    if (!m.key.remoteJid?.endsWith("@g.us")) return
+    if (!m.key.remoteJid.endsWith("@g.us")) return
     if (m.key.fromMe) return
 
-    const group = m.key.remoteJid
-    const user = m.key.participant
-    if (!user) return
+    const groupJid = m.key.remoteJid
+    const sender = m.key.participant
+    if (!sender) return
 
-    if (!db[group]) db[group] = {}
+    const metadata = await conn.groupMetadata(groupJid)
+    const participant = metadata.participants.find(p => p.id === sender)
 
-    const metadata = await conn.groupMetadata(group)
-    const isAdmin = metadata.participants.find(p => p.id === user)?.admin
-    const botJid = conn.user.id.split(":")[0] + "@s.whatsapp.net"
+    if (!participant) return
+    if (participant.admin) return
+    if (sender === conn.user.id.split(":")[0] + "@s.whatsapp.net") return
 
-    if (isAdmin || user === botJid) return
+    if (!db[groupJid]) db[groupJid] = {}
 
-    db[group][user] = {
+    db[groupJid][sender] = {
       last: Date.now(),
       ghost: false
     }
@@ -42,35 +47,30 @@ export async function initFantasma(conn) {
     save()
   })
 
-  setInterval(() => checkGhosts(), 60 * 60 * 1000)
-}
-
-function checkGhosts() {
-  const now = Date.now()
-
-  for (const group in db) {
-    for (const user in db[group]) {
-      const u = db[group][user]
-      if (!u.ghost && now - u.last >= TIMEOUT) {
-        u.ghost = true
+  setInterval(async () => {
+    for (const groupJid in db) {
+      const now = Date.now()
+      for (const jid in db[groupJid]) {
+        if (now - db[groupJid][jid].last >= TIMEOUT) {
+          db[groupJid][jid].ghost = true
+        }
       }
     }
-  }
-
-  save()
+    save()
+  }, 60 * 60 * 1000)
 }
 
-export function getFantasmas(group) {
-  if (!db[group]) return []
-  return Object.entries(db[group])
+function getGhosts(groupJid) {
+  if (!db[groupJid]) return []
+  return Object.entries(db[groupJid])
     .filter(([_, v]) => v.ghost)
     .map(([jid]) => jid)
 }
 
-export async function fankick(conn, group) {
-  const ghosts = getFantasmas(group)
+export async function fankick(conn, groupJid) {
+  const ghosts = getGhosts(groupJid)
   if (!ghosts.length) return 0
-  await conn.groupParticipantsUpdate(group, ghosts, "remove")
+  await conn.groupParticipantsUpdate(groupJid, ghosts, "remove")
   return ghosts.length
 }
 
@@ -78,22 +78,22 @@ const handler = async (m, { conn, isAdmin, isOwner, command }) => {
   if (!m.chat.endsWith("@g.us")) return
 
   if (command === "fantasmas") {
-    const list = getFantasmas(m.chat)
+    const list = getGhosts(m.chat)
     if (!list.length) return m.reply("No hay fantasmas 👻")
 
-    let txt = "👻 *Fantasmas del grupo*\n\n"
+    let txt = "👻 Usuarios Fantasmas\n\n"
     for (const jid of list) {
       txt += `• @${jid.split("@")[0]}\n`
     }
 
-    return m.reply(txt, null, { mentions: list })
+    return conn.sendMessage(m.chat, { text: txt, mentions: list })
   }
 
   if (command === "fankick") {
     if (!isAdmin && !isOwner) return
     const total = await fankick(conn, m.chat)
     if (!total) return m.reply("No hay fantasmas 👻")
-    return m.reply(`👻 ${total} fantasmas eliminados`)
+    m.reply(`👻 ${total} fantasmas eliminados`)
   }
 }
 
