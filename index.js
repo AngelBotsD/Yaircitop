@@ -178,6 +178,7 @@ maxIdleTimeMs: 60000,
 }
 
 global.conn = makeWASocket(connectionOptions)
+initFantasma(global.conn)
 if (!fs.existsSync(`./${sessions}/creds.json`)) {
 if (opcion === '2' || methodCode) {
 opcion = '2'
