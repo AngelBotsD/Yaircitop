@@ -1,70 +1,28 @@
-const TRES_DIAS = 1000 * 60 * 60 * 24 * 3
+import { registrarFantasma, limpiarFantasmas } from "../lib/fantasmas.js"
 
 let handler = async (m, { conn }) => {
 
-  if (!m.isGroup) return
+  await registrarFantasma(m, conn)
 
-  let id = m.chat
-  let group = global.db.data.chats[id] || {}
+  await limpiarFantasmas(conn)
 
-  if (!group.fantasmas) group.fantasmas = {}
+  if (!/^\.fantasmas$/i.test(m.text || "")) return
 
-  let metadata = await conn.groupMetadata(id)
-  let bot = conn.user.jid
+  let gid = m.chat
 
-  for (let p of metadata.participants) {
-    let jid = p.id
-    if (p.admin || jid === bot) continue
-    if (!group.fantasmas[jid]) {
-      group.fantasmas[jid] = { last: 0 }
-    }
+  let lista = Object.keys(global.ghostDB[gid] || {})
+
+  if (!lista.length) {
+    return conn.reply(gid, "✨ No hay fantasmas", m)
   }
 
-  let sender = m.sender
+  let txt = "👻 LISTA DE FANTASMAS\n\n" +
+    lista.map(v => "• @" + v.split("@")[0]).join("\n")
 
-  if (group.fantasmas[sender]) {
-    group.fantasmas[sender].last = Date.now()
-  }
-
-  let fantasmas = []
-
-  for (let jid in group.fantasmas) {
-
-    let p = metadata.participants.find(u => u.id === jid)
-
-    if (!p) {
-      delete group.fantasmas[jid]
-      continue
-    }
-
-    if (p.admin || jid === bot) continue
-
-    let last = group.fantasmas[jid].last
-
-    if (last === 0) {
-      fantasmas.push(jid)
-      continue
-    }
-
-    if (Date.now() - last >= TRES_DIAS) {
-      fantasmas.push(jid)
-    }
-  }
-
-  if (/^\.fantasmas$/i.test(m.text || "")) {
-
-    if (!fantasmas.length) {
-      return await conn.reply(id, "✨ No hay fantasmas ahora mismo", m)
-    }
-
-    let txt = "👻 LISTA DE FANTASMAS\n\n"
-    txt += fantasmas.map(v => "• @" + v.split("@")[0]).join("\n")
-
-    await conn.sendMessage(id, {
-      text: txt,
-      mentions: fantasmas
-    }, { quoted: m })
-  }
+  await conn.sendMessage(gid, {
+    text: txt,
+    mentions: lista
+  }, { quoted: m })
 }
 
 handler.command = ["fantasmas"]
