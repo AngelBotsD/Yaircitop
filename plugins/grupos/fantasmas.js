@@ -1,4 +1,4 @@
-import { registrarFantasma, limpiarFantasmas } from "../lib/fantasmas.js"
+import { registrarFantasma, limpiarFantasmas } from "./lib/fantasmas.js"
 
 let handler = async (m, { conn }) => {
 
