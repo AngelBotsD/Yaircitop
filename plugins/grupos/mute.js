@@ -35,13 +35,14 @@ async function getThumb(url) {
   }
 }
 
-let handler = async (m, { conn, command }) => {
-  const user = m.quoted?.sender || m.mentionedJid?.[0]
+let handler = async (m, { conn, from, command }) => {
+  const ctx = m.message?.extendedTextMessage?.contextInfo
+  const user = m.mentionedJid?.[0] || ctx?.participant || m.quoted?.sender
 
-  if (!user) return m.reply('⚠️ Usa: *.mute @usuario* o responde a su mensaje.')
-  if (user === m.sender) return m.reply('❌ No puedes mutearte a ti mismo.')
-  if (user === conn.user.jid) return m.reply('🤖 No puedes mutear al bot.')
-  if (OWNER_LID.includes(user)) return m.reply('👑 No puedes mutear a un Owner.')
+  if (!user) return conn.sendMessage(from, { text: '⚠️ Usa: *.mute @usuario* o responde a su mensaje.' }, { quoted: m })
+  if (user === m.sender) return conn.sendMessage(from, { text: '❌ No puedes mutearte a ti mismo.' }, { quoted: m })
+  if (user === conn.user.jid) return conn.sendMessage(from, { text: '🤖 No puedes mutear al bot.' }, { quoted: m })
+  if (OWNER_LID.includes(user)) return conn.sendMessage(from, { text: '👑 No puedes mutear a un Owner.' }, { quoted: m })
 
   const imgUrl = command === 'mute'
     ? 'https://telegra.ph/file/f8324d9798fa2ed2317bc.png'
@@ -53,53 +54,42 @@ let handler = async (m, { conn, command }) => {
     key: {
       fromMe: false,
       participant: '0@s.whatsapp.net',
-      remoteJid: m.chat
+      remoteJid: from
     },
     message: {
       locationMessage: {
-        name: command === 'mute'
-          ? 'Usuario muteado'
-          : 'Usuario desmuteado',
+        name: command === 'mute' ? 'Usuario muteado' : 'Usuario desmuteado',
         jpegThumbnail: thumb
       }
     }
   }
 
-  if (!mutedData[m.chat]) mutedData[m.chat] = []
+  if (!mutedData[from]) mutedData[from] = []
 
   let name = 'Usuario'
   try { name = await conn.getName(user) } catch {}
 
   if (command === 'mute') {
-    if (mutedData[m.chat].includes(user)) return
-    mutedData[m.chat].push(user)
+    if (mutedData[from].includes(user)) return
+    mutedData[from].push(user)
     await saveMutedData()
-    await conn.sendMessage(
-      m.chat,
-      { text: `🔇 *${name}* fue muteado.`, mentions: [user] },
-      { quoted: preview }
-    )
+    await conn.sendMessage(from, { text: `🔇 *${name}* fue muteado.`, mentions: [user] }, { quoted: preview })
   } else {
-    if (!mutedData[m.chat].includes(user)) return
-    mutedData[m.chat] = mutedData[m.chat].filter(u => u !== user)
-    if (!mutedData[m.chat].length) delete mutedData[m.chat]
+    if (!mutedData[from].includes(user)) return
+    mutedData[from] = mutedData[from].filter(u => u !== user)
+    if (!mutedData[from].length) delete mutedData[from]
     await saveMutedData()
-    await conn.sendMessage(
-      m.chat,
-      { text: `🔊 *${name}* fue desmuteado.`, mentions: [user] },
-      { quoted: preview }
-    )
+    await conn.sendMessage(from, { text: `🔊 *${name}* fue desmuteado.`, mentions: [user] }, { quoted: preview })
   }
 }
 
-handler.before = async (m, { isCommand, conn }) => {
+handler.before = async (m, { conn, isCommand }) => {
   if (!m.isGroup) return
   if (m.fromMe) return
   if (OWNER_LID.includes(m.sender)) return
 
   const mutedList = mutedData[m.chat]
   if (!mutedList || !mutedList.includes(m.sender)) return
-
   if (isCommand) return true
 
   await conn.sendMessage(m.chat, { delete: m.key }).catch(() => {})
@@ -113,9 +103,9 @@ handler.all = async (m) => {
   if (mutedList && mutedList.includes(m.sender)) return false
 }
 
-handler.help = ['𝖬𝗎𝗍𝖾', '𝖴𝗇𝗆𝗎𝗍𝖾']
-handler.tags = ['𝖦𝖱𝖴𝖯𝖮𝖲']
-handler.command = /^(mute|unmute)$/i
+handler.help = ['mute @usuario', 'unmute @usuario']
+handler.tags = ['GRUPOS']
+handler.command = ['mute', 'unmute']
 handler.group = true
 handler.admin = true
 handler.botAdmin = true
