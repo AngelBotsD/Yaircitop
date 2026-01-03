@@ -266,7 +266,7 @@ isBotAdmin =
         const noPrefix = m.text.replace(usedPrefix, "")
         let [command, ...args] = noPrefix.trim().split(" ").filter(v => v)
         command = (command || "").toLowerCase()
-        if (isRateLimited(m.sender, command)) return
+        if (isRateLimited(m.sender, command)) continue
 
         const fail = plugin.fail || global.dfail
         const isAccept =
