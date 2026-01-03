@@ -188,8 +188,13 @@ export async function handler(chatUpdate) {
         groupMetadata = await this.groupMetadata(m.chat)
         participants = groupMetadata.participants || []
 
-        userGroup = participants.find(p => norm(p.id) === norm(m.sender)) || {}
-        botGroup = participants.find(p => norm(p.id) === norm(this.user.jid)) || {}
+        userGroup = participants.find(p =>
+  norm(p.id || p.jid) === norm(m.sender)
+) || {}
+
+botGroup = participants.find(p =>
+  norm(p.id || p.jid) === norm(this.user.jid)
+) || {}
 
         isRAdmin =
           userGroup.admin === "superadmin" ||
