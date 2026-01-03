@@ -240,7 +240,7 @@ export async function handler(chatUpdate) {
           : typeof pluginPrefix === "string"
           ? [[new RegExp(strRegex(pluginPrefix)).exec(m.text), new RegExp(strRegex(pluginPrefix))]]
           : [[[], new RegExp]]
-      ).find(p => p[0])
+      ).find(p => p[1])
 
       if (typeof plugin.before === "function") {
         if (await plugin.before.call(this, m, {
