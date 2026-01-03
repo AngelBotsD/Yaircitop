@@ -198,7 +198,7 @@ botGroup = participants.find(p =>
 
         isRAdmin =
           userGroup.admin === "superadmin" ||
-          DIGITS(m.sender) === DIGITS(groupMetadata.owner)
+          DIGITS(m.sender) === DIGITS(groupMetadata.owner || "")
 
         isAdmin = isRAdmin || userGroup.admin === "admin"
         isBotAdmin = botGroup.admin === "admin" || botGroup.admin === "superadmin"
