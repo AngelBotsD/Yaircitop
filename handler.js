@@ -95,7 +95,7 @@ export async function handler(chatUpdate) {
 
         const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
         const groupMap = map[m.chat]
-        if (!groupMap) return
+        if (!groupMap) throw 0
 
         const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
         const candidates = []
@@ -188,13 +188,8 @@ export async function handler(chatUpdate) {
         groupMetadata = await this.groupMetadata(m.chat)
         participants = groupMetadata.participants || []
 
-        userGroup = participants.find(p =>
-  norm(p.id || p.jid) === norm(m.sender)
-) || {}
-
-botGroup = participants.find(p =>
-  norm(p.id || p.jid) === norm(this.user.jid)
-) || {}
+        userGroup = participants.find(p => norm(p.id || p.jid) === norm(m.sender)) || {}
+        botGroup = participants.find(p => norm(p.id || p.jid) === norm(this.user.jid)) || {}
 
         isRAdmin =
           userGroup.admin === "superadmin" ||
@@ -216,7 +211,6 @@ botGroup = participants.find(p =>
       }
     }
 
-    let usedPrefix = ""
     const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "plugins")
 
     for (const name in global.plugins) {
@@ -232,82 +226,102 @@ botGroup = participants.find(p =>
       }
 
       const strRegex = str => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
+
       let usedPrefix = ""
-let command = ""
-let args = []
+      let command = ""
+      let args = []
 
-const text = m.text || ""
+      const text = m.text || ""
+      const pluginPrefix = plugin.customPrefix ?? this.prefix ?? global.prefix
 
-const pluginPrefix = plugin.customPrefix ?? this.prefix ?? global.prefix
-let prefixMatch = null
+      if (pluginPrefix) {
+        const list = Array.isArray(pluginPrefix) ? pluginPrefix : [pluginPrefix]
+        for (const p of list) {
+          const r = p instanceof RegExp ? p : new RegExp("^" + strRegex(p))
+          const m2 = r.exec(text)
+          if (m2) {
+            usedPrefix = m2[0] || ""
+            break
+          }
+        }
+      }
 
-if (pluginPrefix) {
-  const list = Array.isArray(pluginPrefix) ? pluginPrefix : [pluginPrefix]
-  for (const p of list) {
-    const r = p instanceof RegExp ? p : new RegExp("^" + strRegex(p))
-    const m2 = r.exec(text)
-    if (m2) {
-      prefixMatch = m2[0] || ""
-      break
-    }
-  }
-}
-
-usedPrefix = prefixMatch || ""
-
-const body = usedPrefix
-  ? text.slice(usedPrefix.length).trim()
-  : text.trim()
-
-;[command, ...args] = body.split(/\s+/)
-command = (command || "").toLowerCase()
+      const body = usedPrefix ? text.slice(usedPrefix.length).trim() : text.trim()
+      ;[command, ...args] = body.split(/\s+/)
+      command = (command || "").toLowerCase()
 
       if (typeof plugin.before === "function") {
         if (await plugin.before.call(this, m, {
-          match, conn: this, participants, groupMetadata, userGroup, botGroup,
-          isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isPrems,
-          chatUpdate, __dirname: ___dirname, __filename, user, chat, settings
+          match: null,
+          conn: this,
+          participants,
+          groupMetadata,
+          userGroup,
+          botGroup,
+          isROwner,
+          isOwner,
+          isRAdmin,
+          isAdmin,
+          isBotAdmin,
+          isPrems,
+          chatUpdate,
+          __dirname: ___dirname,
+          __filename,
+          user,
+          chat,
+          settings
         })) continue
       }
 
-      if (typeof plugin !== "function") continue
-
       if (!command) continue
-        if (isRateLimited(m.sender, command)) continue
+      if (isRateLimited(m.sender, command)) continue
 
-        const fail = plugin.fail || global.dfail
-        const isAccept =
-          plugin.command instanceof RegExp ? plugin.command.test(command)
-          : Array.isArray(plugin.command) ? plugin.command.some(c => c instanceof RegExp ? c.test(command) : c === command)
-          : typeof plugin.command === "string" ? plugin.command === command : false
+      const isAccept =
+        plugin.command instanceof RegExp ? plugin.command.test(command)
+        : Array.isArray(plugin.command) ? plugin.command.some(c => c instanceof RegExp ? c.test(command) : c === command)
+        : typeof plugin.command === "string" ? plugin.command === command : false
 
-        if (!isAccept) continue
+      if (!isAccept) continue
 
-        m.plugin = name
-        global.db.data.users[m.sender].commands++
+      const fail = plugin.fail || global.dfail
 
-        if (chat.modoadmin && !isOwner && m.isGroup && !isAdmin) return
-        if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
-        if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
-        if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
-        if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
-        if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
-        if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
-        if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
-        if (plugin.private && m.isGroup) { fail("private", m, this); continue }
+      if (chat.modoadmin && !isOwner && m.isGroup && !isAdmin) return
+      if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
+      if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
+      if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
+      if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
+      if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
+      if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
+      if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
+      if (plugin.private && m.isGroup) { fail("private", m, this); continue }
 
-        m.isCommand = true
-        m.exp += plugin.exp ? parseInt(plugin.exp) : 10
+      m.isCommand = true
+      m.exp += plugin.exp ? parseInt(plugin.exp) : 10
+      global.db.data.users[m.sender].commands++
 
-        await plugin.call(this, m, {
-          match, usedPrefix, noPrefix, args,
-          command, text: args.join(" "),
-          conn: this, participants, groupMetadata,
-          userGroup, botGroup,
-          isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isPrems,
-          chatUpdate, __dirname: ___dirname, __filename, user, chat, settings
-        })
-      }
+      await plugin.call(this, m, {
+        usedPrefix,
+        command,
+        args,
+        text: args.join(" "),
+        conn: this,
+        participants,
+        groupMetadata,
+        userGroup,
+        botGroup,
+        isROwner,
+        isOwner,
+        isRAdmin,
+        isAdmin,
+        isBotAdmin,
+        isPrems,
+        chatUpdate,
+        __dirname: ___dirname,
+        __filename,
+        user,
+        chat,
+        settings
+      })
     }
   } finally {
     if (opts["queque"] && m.text) {
@@ -332,7 +346,7 @@ global.dfail = (type, m, conn) => {
     group: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖥𝗎𝗇𝖼𝗂𝗈𝗇𝖺 𝖤𝗇 𝖦𝗋𝗎𝗉𝗈𝗌*`,
     private: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖲𝖾 𝖯𝗎𝖾𝖽𝖾 𝖮𝖼𝗎𝗉𝖺𝗋 𝖤𝗇 𝖤𝗅 𝖯𝗋𝗂𝗏𝖺𝖽𝗈*`,
     admin: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗌𝖺𝖽𝗈 𝖯𝗈𝗋 𝖠𝖽𝗆𝗂𝗇𝗂𝗌𝗍𝗋𝖺𝖽𝗈𝗋𝖾𝗌*`,
-    botAdmin: `*𝖭𝖾𝖼𝖾𝗌𝗂𝗍𝗈 𝗌𝖾𝗋 𝖠𝖽𝗆𝗂𝗇 𝖯𝖺𝗋𝖺 𝖴𝗌𝖺𝗋 𝖤𝗌𝖙𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈*`,
+    botAdmin: `*𝖭𝖾𝖼𝖾𝗌𝗂𝗍𝗈 𝗌𝖾𝗋 𝖠𝖽𝗆𝗂𝗇 𝖯𝖺𝗋𝖺 𝖴𝗌𝖺𝗋 𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈*`,
     restrict: `*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖧𝖺 𝖲𝗂𝖽𝗈 𝖣𝖾𝗌𝖺𝖻𝗂𝗅𝗂𝗍𝖺𝖽𝗈*`
   }[type]
   if (msg) return conn.reply(m.chat, msg, m, rcanal).then(() => m.react("✖️"))
