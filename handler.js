@@ -232,20 +232,35 @@ botGroup = participants.find(p =>
       }
 
       const strRegex = str => str.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
-      const pluginPrefix = plugin.customPrefix || this.prefix || global.prefix
+      let usedPrefix = ""
+let command = ""
+let args = []
 
-      const match = (
-        pluginPrefix instanceof RegExp
-          ? [[pluginPrefix.exec(m.text), pluginPrefix]]
-          : Array.isArray(pluginPrefix)
-          ? pluginPrefix.map(p => {
-              const r = p instanceof RegExp ? p : new RegExp(strRegex(p))
-              return [r.exec(m.text), r]
-            })
-          : typeof pluginPrefix === "string"
-          ? [[new RegExp(strRegex(pluginPrefix)).exec(m.text), new RegExp(strRegex(pluginPrefix))]]
-          : [[[], new RegExp]]
-      ).find(p => p[0] !== null)
+const text = m.text || ""
+
+const pluginPrefix = plugin.customPrefix ?? this.prefix ?? global.prefix
+let prefixMatch = null
+
+if (pluginPrefix) {
+  const list = Array.isArray(pluginPrefix) ? pluginPrefix : [pluginPrefix]
+  for (const p of list) {
+    const r = p instanceof RegExp ? p : new RegExp("^" + strRegex(p))
+    const m2 = r.exec(text)
+    if (m2) {
+      prefixMatch = m2[0] || ""
+      break
+    }
+  }
+}
+
+usedPrefix = prefixMatch || ""
+
+const body = usedPrefix
+  ? text.slice(usedPrefix.length).trim()
+  : text.trim()
+
+;[command, ...args] = body.split(/\s+/)
+command = (command || "").toLowerCase()
 
       if (typeof plugin.before === "function") {
         if (await plugin.before.call(this, m, {
