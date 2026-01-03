@@ -256,7 +256,7 @@ export async function handler(chatUpdate) {
         const noPrefix = m.text.replace(usedPrefix, "")
         let [command, ...args] = noPrefix.trim().split(" ").filter(v => v)
         command = (command || "").toLowerCase()
-        if (isRateLimited(m.sender, command)) continue
+        if (isRateLimited(m.sender, command)) return
 
         const fail = plugin.fail || global.dfail
         const isAccept =
