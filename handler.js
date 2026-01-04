@@ -19,6 +19,26 @@ function isOwnerBySender(sender) {
   return OWNER_NUMBERS.includes(DIGITS(sender))
 }
 
+global.dfail = (type, m, conn) => {
+  const msg = {
+    rowner: "*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗌𝖺𝖽𝗈 𝖯𝗈𝗋 𝖬𝗂 𝖢𝗋𝖾𝖺𝖽𝗈𝗋*",
+    owner: "*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗍𝗂𝗅𝗂𝗓𝖺𝖽𝗈 𝖯𝗈𝗋 𝖬𝗂 𝖢𝗋𝖾𝖺𝖽𝗈𝗋*",
+    mods: "*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗌𝖺𝖽𝗈 𝖯𝗈𝗋 𝖽𝖾𝗌𝖺𝗋𝗋𝗈𝗅𝗅𝖺𝖽𝗈𝗋𝖾𝗌*",
+    premium: "*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖫𝗈 𝖯𝗎𝖾𝖽𝖾𝗇 𝖴𝗍𝗂𝗅𝗂𝗓𝖺𝗋 𝖴𝗌𝗎𝖺𝗋𝗂𝗈𝗌 𝖯𝗋𝖾𝗆𝗂𝗎𝗆*",
+    group: "*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖥𝗎𝗇𝖼𝗂𝗈𝗇𝖺 𝖤𝗇 𝖦𝗋𝗎𝗉𝗈𝗌*",
+    private: "*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖲𝖾 𝖯𝗎𝖾𝖽𝖾 𝖮𝖼𝗎𝗉𝖺𝗋 𝖤𝗇 𝖤𝗅 𝖯𝗋𝗂𝗏𝖺𝖽𝗈*",
+    admin: "*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖲𝗈𝗅𝗈 𝖯𝗎𝖾𝖽𝖾 𝖲𝖾𝗋 𝖴𝗌𝖺𝖽𝗈 𝖯𝗈𝗋 𝖠𝖽𝗆𝗂𝗇𝗂𝗌𝗍𝗋𝖺𝖽𝗈𝗋𝖾𝗌*",
+    botAdmin: "*𝖭𝖾𝖼𝖾𝗌𝗂𝗍𝗈 𝗌𝖾𝗋 𝖠𝖽𝗆𝗂𝗇 𝖯𝖺𝗋𝖺 𝖴𝗌𝖺𝗋 𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈*",
+    restrict: "*𝖤𝗌𝗍𝖾 𝖢𝗈𝗆𝖺𝗇𝖽𝗈 𝖧𝖺 𝖲𝗂𝖽𝗈 𝖣𝖾𝗌𝖺𝖻𝗂𝗅𝗂𝗍𝖺𝖽𝗈*"
+  }[type]
+
+  if (msg)
+    return conn.reply(m.chat, msg, m, rcanal)
+      .then(() => m.react("✖️"))
+}
+
+const fail = (type, m, conn) => global.dfail?.(type, m, conn)
+
 global.handledMessages ||= new Map()
 global.recentCommands ||= new Map()
 global.groupMetaCache ||= new Map()
@@ -40,15 +60,12 @@ export async function handler(chatUpdate) {
   }
 
   if (Math.random() < 0.05) {
-    for (const [k, v] of global.handledMessages) {
+    for (const [k, v] of global.handledMessages)
       if (Date.now() - v > 120000) global.handledMessages.delete(k)
-    }
-    for (const [k, v] of global.recentCommands) {
+    for (const [k, v] of global.recentCommands)
       if (Date.now() - v > 60000) global.recentCommands.delete(k)
-    }
-    for (const [k, v] of global.groupMetaCache) {
+    for (const [k, v] of global.groupMetaCache)
       if (Date.now() - v.ts > 15000) global.groupMetaCache.delete(k)
-    }
   }
 
   if (global.db.data == null)
@@ -60,49 +77,6 @@ export async function handler(chatUpdate) {
 
     m.exp = 0
     if (typeof m.text !== "string") m.text = ""
-
-    try {
-      const st =
-        m.message?.stickerMessage ||
-        m.message?.ephemeralMessage?.message?.stickerMessage ||
-        null
-
-      if (st && m.isGroup) {
-        const jsonPath = "./comandos.json"
-        if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, "{}")
-
-        const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
-        const groupMap = map[m.chat]
-        if (!groupMap) return
-
-        const rawSha =
-          st.fileSha256 ||
-          st.fileSha256Hash ||
-          st.filehash
-
-        const candidates = []
-
-        if (rawSha) {
-          if (Buffer.isBuffer(rawSha)) candidates.push(rawSha.toString("base64"))
-          else if (ArrayBuffer.isView(rawSha)) candidates.push(Buffer.from(rawSha).toString("base64"))
-          else if (typeof rawSha === "string") candidates.push(rawSha)
-        }
-
-        let mapped = null
-        for (const k of candidates) {
-          if (groupMap[k] && groupMap[k].trim()) {
-            mapped = groupMap[k].trim()
-            break
-          }
-        }
-
-        if (mapped) {
-          const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || "."
-          m.text = (mapped.startsWith(pref) ? mapped : pref + mapped).toLowerCase()
-          m.isCommand = true
-        }
-      }
-    } catch {}
 
     const user = global.db.data.users[m.sender] ||= {
       name: m.name,
@@ -186,10 +160,7 @@ export async function handler(chatUpdate) {
     }
 
     let usedPrefix = ""
-    const ___dirname = path.join(
-      path.dirname(fileURLToPath(import.meta.url)),
-      "plugins"
-    )
+    const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "plugins")
 
     const hasPrefix =
       m.text.startsWith((Array.isArray(global.prefixes) && global.prefixes[0]) || ".")
@@ -197,26 +168,17 @@ export async function handler(chatUpdate) {
     for (const name in global.plugins) {
       const plugin = global.plugins[name]
       if (!plugin || plugin.disabled) continue
-
       if (!hasPrefix && typeof plugin.all !== "function" && !m.isCommand) continue
 
       const __filename = join(___dirname, name)
 
       if (typeof plugin.all === "function") {
         try {
-          await plugin.all.call(this, m, {
-            chatUpdate,
-            __dirname: ___dirname,
-            __filename,
-            user,
-            chat,
-            settings
-          })
+          await plugin.all.call(this, m, { chatUpdate, __dirname: ___dirname, __filename, user, chat, settings })
         } catch {}
       }
 
       const pluginPrefix = plugin.customPrefix || this.prefix || global.prefix
-
       const match =
         typeof pluginPrefix === "string"
           ? [[new RegExp(pluginPrefix).exec(m.text), new RegExp(pluginPrefix)]]
@@ -228,11 +190,6 @@ export async function handler(chatUpdate) {
         const noPrefix = m.text.replace(usedPrefix, "")
         let [command, ...args] = noPrefix.trim().split(" ")
         command = (command || "").toLowerCase()
-
-        const rateKey = m.sender + ":" + command
-        const last = global.recentCommands.get(rateKey)
-        if (last && Date.now() - last < 1200) return
-        global.recentCommands.set(rateKey, Date.now())
 
         if (!plugin.command) continue
 
@@ -248,11 +205,14 @@ export async function handler(chatUpdate) {
         m.isCommand = true
         user.commands++
 
-        if (plugin.admin && !isAdmin) return
-        if (plugin.botAdmin && !isBotAdmin) return
-        if (plugin.owner && !isOwner) return
-        if (plugin.premium && !isPrems) return
-        if (plugin.group && !m.isGroup) return
+        if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
+        if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
+        if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
+        if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
+        if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
+        if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
+        if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
+        if (plugin.private && m.isGroup) { fail("private", m, this); continue }
 
         await plugin.call(this, m, {
           args,
