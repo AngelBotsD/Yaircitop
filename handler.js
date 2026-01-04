@@ -40,10 +40,6 @@ function isDuplicateMessage(conn, m) {
   return false
 }
 
-function normalizeJidSafe(jid = "") {
-  return String(jid || "").replace(/:\d+(?=@)/, "")
-}
-
 async function withTimeout(promise, ms = 8000) {
   return await Promise.race([
     promise,
@@ -81,44 +77,6 @@ export async function handler(chatUpdate) {
     if (!m) return
     m.exp = 0
     if (typeof m.text !== "string") m.text = ""
-
-    try {
-      const st =
-        m.message?.stickerMessage ||
-        m.message?.ephemeralMessage?.message?.stickerMessage ||
-        null
-
-      if (st && m.isGroup) {
-        const jsonPath = "./comandos.json"
-        if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, "{}")
-        const map = JSON.parse(fs.readFileSync(jsonPath, "utf-8") || "{}")
-        const groupMap = map[m.chat]
-        if (!groupMap) return
-        const rawSha = st.fileSha256 || st.fileSha256Hash || st.filehash
-        const candidates = []
-
-        if (rawSha) {
-          if (Buffer.isBuffer(rawSha)) candidates.push(rawSha.toString("base64"))
-          else if (ArrayBuffer.isView(rawSha)) candidates.push(Buffer.from(rawSha).toString("base64"))
-          else if (typeof rawSha === "string") candidates.push(rawSha)
-        }
-
-        let mapped = null
-        for (const k of candidates) {
-          if (groupMap[k] && groupMap[k].trim()) {
-            mapped = groupMap[k].trim()
-            break
-          }
-        }
-
-        if (mapped) {
-          const pref = (Array.isArray(global.prefixes) && global.prefixes[0]) || "."
-          const injected = mapped.startsWith(pref) ? mapped : pref + mapped
-          m.text = injected.toLowerCase()
-          m.isCommand = true
-        }
-      }
-    } catch {}
 
     const user = global.db.data.users[m.sender] ||= {
       name: m.name,
@@ -193,19 +151,11 @@ export async function handler(chatUpdate) {
           })
         }
 
-        const senderJid = normalizeJidSafe(m.sender)
-        const botJid = normalizeJidSafe(this.user.jid)
-
-        const userParticipant = participants.find(p =>
-          normalizeJidSafe(p.id || p.jid) === senderJid
-        )
-
-        const botParticipant = participants.find(p =>
-          normalizeJidSafe(p.id || p.jid) === botJid
-        )
+        const userParticipant = participants.find(p => p.id === m.sender)
+        const botParticipant = participants.find(p => p.id === this.user.jid)
 
         isRAdmin = userParticipant?.admin === "superadmin"
-isAdmin = userParticipant?.admin === "admin" || isRAdmin
+        isAdmin = userParticipant?.admin === "admin" || isRAdmin
         isBotAdmin =
           botParticipant?.admin === "admin" ||
           botParticipant?.admin === "superadmin"
@@ -215,6 +165,7 @@ isAdmin = userParticipant?.admin === "admin" || isRAdmin
       } catch {}
     }
 
+     
     let usedPrefix = ""
     const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "plugins")
 
