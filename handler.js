@@ -72,98 +72,107 @@ export async function handler(chatUpdate) {
   if (global.db.data == null)
     await global.loadDatabase()
 
-  try {
-    m = smsg(this, m) || m
-    if (!m) return
-    m.exp = 0
-    if (typeof m.text !== "string") m.text = ""
+  m = smsg(this, m) || m
+  if (!m) return
+  m.exp = 0
+  if (typeof m.text !== "string") m.text = ""
 
-    const user = global.db.data.users[m.sender] ||= {
-      name: m.name,
-      exp: 0,
-      level: 0,
-      health: 100,
-      genre: "",
-      birth: "",
-      marry: "",
-      description: "",
-      packstickers: null,
-      premium: false,
-      premiumTime: 0,
-      banned: false,
-      bannedReason: "",
-      commands: 0,
-      afk: -1,
-      afkReason: "",
-      warn: 0
-    }
+  const user = global.db.data.users[m.sender] ||= {
+    name: m.name,
+    exp: 0,
+    level: 0,
+    health: 100,
+    genre: "",
+    birth: "",
+    marry: "",
+    description: "",
+    packstickers: null,
+    premium: false,
+    premiumTime: 0,
+    banned: false,
+    bannedReason: "",
+    commands: 0,
+    afk: -1,
+    afkReason: "",
+    warn: 0
+  }
 
-    const chat = global.db.data.chats[m.chat] ||= {
-      isBanned: false,
-      isMute: false,
-      welcome: false,
-      sWelcome: "",
-      sBye: "",
-      detect: true,
-      primaryBot: null,
-      modoadmin: false,
-      antiLink: true,
-      nsfw: false
-    }
+  const chat = global.db.data.chats[m.chat] ||= {
+    isBanned: false,
+    isMute: false,
+    welcome: false,
+    sWelcome: "",
+    sBye: "",
+    detect: true,
+    primaryBot: null,
+    modoadmin: false,
+    antiLink: true,
+    nsfw: false
+  }
 
-    const settings = global.db.data.settings[this.user.jid] ||= {
-      self: false,
-      restrict: true,
-      antiPrivate: false,
-      gponly: false
-    }
+  const settings = global.db.data.settings[this.user.jid] ||= {
+    self: false,
+    restrict: true,
+    antiPrivate: false,
+    gponly: false
+  }
 
-    const isROwner = isOwnerBySender(m.sender)
-    const isOwner = isROwner || m.fromMe
-    const isPrems = isROwner || user.premium === true
-    const isOwners = isROwner || m.sender === this.user.jid
+  const isROwner = isOwnerBySender(m.sender)
+  const isOwner = isROwner || m.fromMe
+  const isPrems = isROwner || user.premium === true
+  const isOwners = isROwner || m.sender === this.user.jid
 
-    if (settings.self && !isOwners) return
-    if (m.isBaileys) return
-    if (m.fromMe && !isOwner) return
+  if (settings.self && !isOwners) return
+  if (m.isBaileys) return
+  if (m.fromMe && !isOwner) return
 
-    let groupMetadata = {}
-    let participants = []
-    let userGroup = {}
-    let botGroup = {}
-    let isRAdmin = false
-    let isAdmin = false
-    let isBotAdmin = false
+  let groupMetadata = {}
+  let participants = []
+  let userGroup = {}
+  let botGroup = {}
+  let isRAdmin = false
+  let isAdmin = false
+  let isBotAdmin = false
 
-    if (m.isGroup) {
-      try {
-        const cached = getCachedGroupMeta(m.chat)
-        if (cached) {
-          groupMetadata = cached.groupMetadata
-          participants = cached.participants
-        } else {
-          groupMetadata = await withTimeout(this.groupMetadata(m.chat), 8000)
-          participants = groupMetadata.participants || []
-          groupMetaCache.set(m.chat, {
-            ts: Date.now(),
-            groupMetadata,
-            participants
-          })
-        }
+  if (m.isGroup) {
+    try {
+      const cached = getCachedGroupMeta(m.chat)
+      if (cached) {
+        groupMetadata = cached.groupMetadata
+        participants = cached.participants
+      } else {
+        groupMetadata = await withTimeout(this.groupMetadata(m.chat), 8000)
+        participants = groupMetadata.participants || []
+        groupMetaCache.set(m.chat, {
+          ts: Date.now(),
+          groupMetadata,
+          participants
+        })
+      }
 
-        const userParticipant = participants.find(p => p.id === m.sender)
-        const botParticipant = participants.find(p => p.id === this.user.jid)
+      const participant = participants.find(p =>
+        p.id === m.sender || p.jid === m.sender
+      )
 
-        isRAdmin = userParticipant?.admin === "superadmin"
-        isAdmin = userParticipant?.admin === "admin" || isRAdmin
-        isBotAdmin =
-          botParticipant?.admin === "admin" ||
-          botParticipant?.admin === "superadmin"
+      const bot = participants.find(p =>
+        p.id === this.user.jid || p.jid === this.user.jid
+      )
 
-        userGroup = userParticipant || {}
-        botGroup = botParticipant || {}
-      } catch {}
-    }
+      isRAdmin =
+        participant?.admin === "superadmin" ||
+        m.sender === groupMetadata.owner
+
+      isAdmin =
+        isRAdmin || participant?.admin === "admin"
+
+      isBotAdmin =
+        bot?.admin === "admin" ||
+        bot?.admin === "superadmin"
+
+      userGroup = participant || {}
+      botGroup = bot || {}
+    } catch {}
+  }
 
      
     let usedPrefix = ""
