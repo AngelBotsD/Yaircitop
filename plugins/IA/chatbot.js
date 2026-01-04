@@ -1,9 +1,9 @@
 import fetch from 'node-fetch'
 
 const ALLOWED_MENTIONS = [
-  '5215584393251@s.whatsapp.net',
-  '25856038715509@lid',
-  '5215584393251'
+  '5215911153853@s.whatsapp.net',
+  '226044783132714@lid',
+  '5215911153853'
 ]
 
 const gemini = {
