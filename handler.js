@@ -166,73 +166,80 @@ export async function handler(chatUpdate) {
       m.text.startsWith((Array.isArray(global.prefixes) && global.prefixes[0]) || ".")
 
     for (const name in global.plugins) {
-      const plugin = global.plugins[name]
-      if (!plugin || plugin.disabled) continue
-      if (typeof plugin.all !== "function" && !hasPrefix) continue
+  const plugin = global.plugins[name]
+  if (!plugin || plugin.disabled) continue
+  if (typeof plugin.all !== "function" && !hasPrefix) continue
 
-      const __filename = join(___dirname, name)
+  const __filename = join(___dirname, name)
 
-      if (typeof plugin.all === "function") {
-        try {
-          await plugin.all.call(this, m, { chatUpdate, __dirname: ___dirname, __filename, user, chat, settings })
-        } catch {}
-      }
+  if (typeof plugin.all === "function") {
+    try {
+      await plugin.all.call(this, m, {
+        chatUpdate,
+        __dirname: ___dirname,
+        __filename,
+        user,
+        chat,
+        settings
+      })
+    } catch {}
+  }
 
-      const prefixes = Array.isArray(global.prefixes)
-  ? global.prefixes
-  : [global.prefix || "."]
+  const prefixes = Array.isArray(global.prefixes)
+    ? global.prefixes
+    : [global.prefix || "."]
 
-const prefix = prefixes.find(p => m.text.startsWith(p))
-if (!prefix) continue
+  const prefix = prefixes.find(p => m.text.startsWith(p))
+  if (!prefix) continue
 
-usedPrefix = prefix
+  usedPrefix = prefix
 
-const noPrefix = m.text.slice(prefix.length)
-let [command, ...args] = noPrefix.trim().split(/\s+/)
-command = (command || "").toLowerCase()
+  const noPrefix = m.text.slice(prefix.length)
+  let [command, ...args] = noPrefix.trim().split(/\s+/)
+  command = (command || "").toLowerCase()
 
-        if (!plugin.command) continue
+  if (!plugin.command) continue
 
-        const isAccept =
-          plugin.command instanceof RegExp
-            ? plugin.command.test(command)
-            : Array.isArray(plugin.command)
-              ? plugin.command.includes(command)
-              : plugin.command === command
+  const isAccept =
+    plugin.command instanceof RegExp
+      ? plugin.command.test(command)
+      : Array.isArray(plugin.command)
+        ? plugin.command.includes(command)
+        : plugin.command === command
 
-        if (!isAccept) continue
+  if (!isAccept) continue
 
-m.isCommand = true
-user.commands++
+  m.isCommand = true
+  user.commands++
 
-if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
-if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
-if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
-if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
-if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
-if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
-if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
-if (plugin.private && m.isGroup) { fail("private", m, this); continue }
+  if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
+  if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
+  if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
+  if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
+  if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
+  if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
+  if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
+  if (plugin.private && m.isGroup) { fail("private", m, this); continue }
 
-await plugin.call(this, m, {
-  args,
-  command,
-  conn: this,
-  participants,
-  groupMetadata,
-  userGroup,
-  botGroup,
-  isROwner,
-  isOwner,
-  isAdmin,
-  isBotAdmin,
-  isPrems,
-  chat,
-  user,
-  settings
-})
+  await plugin.call(this, m, {
+    args,
+    command,
+    conn: this,
+    participants,
+    groupMetadata,
+    userGroup,
+    botGroup,
+    isROwner,
+    isOwner,
+    isAdmin,
+    isBotAdmin,
+    isPrems,
+    chat,
+    user,
+    settings
+  })
 
-break
+  break
       }
     }
   } catch (err) {
