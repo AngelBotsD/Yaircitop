@@ -198,7 +198,10 @@ export async function handler(chatUpdate) {
 )
     if (!prefix) continue
 
-    const noPrefix = m.text.slice(prefix.length)
+    const noPrefix =
+  prefix instanceof RegExp
+    ? m.text.replace(prefix, "")
+    : m.text.slice(prefix.length)
     let [command, ...args] = noPrefix.trim().split(/\s+/)
     command = (command || "").toLowerCase()
 
