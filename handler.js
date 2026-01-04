@@ -215,22 +215,24 @@ export async function handler(chatUpdate) {
         if (plugin.private && m.isGroup) { fail("private", m, this); continue }
 
         await plugin.call(this, m, {
-          args,
-          command,
-          conn: this,
-          participants,
-          groupMetadata,
-          userGroup,
-          botGroup,
-          isROwner,
-          isOwner,
-          isAdmin,
-          isBotAdmin,
-          isPrems,
-          chat,
-          user,
-          settings
-        })
+  args,
+  command,
+  conn: this,
+  participants,
+  groupMetadata,
+  userGroup,
+  botGroup,
+  isROwner,
+  isOwner,
+  isAdmin,
+  isBotAdmin,
+  isPrems,
+  chat,
+  user,
+  settings
+})
+
+break
       }
     }
   } catch (err) {
