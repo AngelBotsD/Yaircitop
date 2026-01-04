@@ -202,19 +202,19 @@ export async function handler(chatUpdate) {
 
         if (!isAccept) continue
 
-        m.isCommand = true
-        user.commands++
+m.isCommand = true
+user.commands++
 
-        if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
-        if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
-        if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
-        if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
-        if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
-        if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
-        if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
-        if (plugin.private && m.isGroup) { fail("private", m, this); continue }
+if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
+if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
+if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
+if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
+if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
+if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
+if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
+if (plugin.private && m.isGroup) { fail("private", m, this); continue }
 
-        await plugin.call(this, m, {
+await plugin.call(this, m, {
   args,
   command,
   conn: this,
