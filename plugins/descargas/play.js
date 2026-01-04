@@ -4,8 +4,9 @@ import yts from "yt-search"
 const API_BASE = (global.APIs.may || "").replace(/\/+$/, "")
 const API_KEY  = global.APIKeys.may || ""
 
-const handler = async (msg, { conn, text, usedPrefix, command }) => {
+const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play" }) => {
   const chatId = msg.key.remoteJid
+  const text = args.join(" ").trim()
   const input = String(text || "").trim()
 
   if (input.startsWith("audio|") || input.startsWith("video|")) {
@@ -68,16 +69,11 @@ const handler = async (msg, { conn, text, usedPrefix, command }) => {
       throw new Error("Sin resultados")
 
     const video = search.videos[0]
-    const title    = video.title
-    const author   = video.author?.name || "Desconocido"
-    const duration = video.timestamp || "Desconocida"
-    const thumb    = video.thumbnail
-    const url      = video.url
 
     const caption =
-`⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${title}
-⭒ ִֶָ७ ꯭🎤˙⋆｡ - *𝙰𝚛𝚝𝚒𝚜𝚝𝚊:* ${author}
-⭒ ִֶָ७ ꯭🕑˙⋆｡ - *𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗:* ${duration}
+`⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${video.title}
+⭒ ִֶָ७ ꯭🎤˙⋆｡ - *𝙰𝚛𝚝𝚒𝚜𝚝𝚊:* ${video.author?.name || "Desconocido"}
+⭒ ִֶָ७ ꯭🕑˙⋆｡ - *𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗:* ${video.timestamp || "Desconocida"}
 
 Selecciona el formato 👇
 
@@ -88,19 +84,19 @@ Selecciona el formato 👇
 
     const buttons = [
       {
-        buttonId: `${usedPrefix}${command} audio|${url}`,
+        buttonId: `${usedPrefix}${command} audio|${video.url}`,
         buttonText: { displayText: "🎵 Audio" },
         type: 1
       },
       {
-        buttonId: `${usedPrefix}${command} video|${url}`,
+        buttonId: `${usedPrefix}${command} video|${video.url}`,
         buttonText: { displayText: "🎬 Video" },
         type: 1
       }
     ]
 
     await conn.sendMessage(chatId, {
-      image: { url: thumb },
+      image: { url: video.thumbnail },
       caption,
       buttons,
       headerType: 4
