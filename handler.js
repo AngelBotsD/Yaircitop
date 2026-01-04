@@ -245,7 +245,7 @@ export async function handler(chatUpdate) {
           if (plugin.tags && plugin.tags.includes("admin")) continue
         }
 
-        const strRegex = str => str.replace(/[|\{}()[]^$+*?.]/g, "\\$&")
+        const strRegex = (str) => str.replace(/[|\{}()[]^$+*?.]/g, "\$&")
         const pluginPrefix = plugin.customPrefix || this.prefix || global.prefix
 
         const match = (
