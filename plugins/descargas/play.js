@@ -1,143 +1,121 @@
-import yts from 'yt-search'
+import axios from "axios"
+import yts from "yt-search"
 
-const MAX_SECONDS = 90 * 60
-const HTTP_TIMEOUT_MS = 90 * 1000
-const API_KEY = 'Angxlllll'
-const API_BASE = 'https://api-adonix.ultraplus.click'
+const API_BASE = (global.APIs.may || "").replace(/\/+$/, "")
+const API_KEY  = global.APIKeys.may || ""
 
-function parseDurationToSeconds(d) {
-  if (d == null) return null
-  if (typeof d === 'number' && Number.isFinite(d)) return Math.max(0, Math.floor(d))
-  const s = String(d).trim()
-  if (!s) return null
-  if (/^\d+$/.test(s)) return Math.max(0, parseInt(s, 10))
-  const parts = s.split(':').map(v => v.trim()).filter(Boolean)
-  if (!parts.length || parts.some(p => !/^\d+$/.test(p))) return null
-  let sec = 0
-  for (const p of parts) sec = sec * 60 + parseInt(p, 10)
-  return Number.isFinite(sec) ? sec : null
-}
+const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play" }) => {
+  const chatId = msg.key.remoteJid
+  const text = args.join(" ").trim()
+  const input = String(text || "").trim()
 
-async function fetchJson(url, timeoutMs = HTTP_TIMEOUT_MS) {
-  const ctrl = new AbortController()
-  const t = setTimeout(() => ctrl.abort(), timeoutMs)
-  try {
-    const res = await fetch(url, { signal: ctrl.signal })
-    const data = await res.json()
-    if (!res.ok || !data?.status) throw new Error(data?.message || 'Error API')
-    return data
-  } finally {
-    clearTimeout(t)
-  }
-}
+  if (input.startsWith("audio|") || input.startsWith("video|")) {
+    const [type, url] = input.split("|")
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
-  const from = m.chat
-  const input = (args.join(' ') || '').trim()
-
-  // ========= CLICK DE BOTÓN =========
-  if (input.startsWith('audio|') || input.startsWith('video|')) {
-    const [type, url] = input.split('|')
-
-    await conn.sendMessage(from, {
-      react: { text: type === 'audio' ? '🎵' : '🎬', key: m.key }
+    await conn.sendMessage(chatId, {
+      react: { text: type === "audio" ? "🎵" : "🎬", key: msg.key }
     })
 
     try {
-      if (type === 'audio') {
-        const api = `${API_BASE}/download/ytaudio?apikey=${API_KEY}&url=${encodeURIComponent(url)}`
-        const data = await fetchJson(api)
+      const dlType = type === "audio" ? "Mp3" : "Mp4"
 
-        await conn.sendMessage(from, {
-          audio: { url: data.data.url },
-          mimetype: 'audio/mpeg',
-          fileName: `${data.data.title}.mp3`
-        }, { quoted: m })
+      const { data } = await axios.get(
+        `${API_BASE}/ytdl?url=${encodeURIComponent(url)}&type=${dlType}&apikey=${API_KEY}`
+      )
+
+      if (!data?.status || !data.result?.url)
+        throw new Error("No se pudo obtener el archivo")
+
+      if (type === "audio") {
+        await conn.sendMessage(chatId, {
+          audio: { url: data.result.url },
+          mimetype: "audio/mpeg",
+          ptt: false
+        }, { quoted: msg })
+      } else {
+        await conn.sendMessage(chatId, {
+          video: { url: data.result.url },
+          mimetype: "video/mp4"
+        }, { quoted: msg })
       }
 
-      if (type === 'video') {
-        const api = `${API_BASE}/download/ytvideo?apikey=${API_KEY}&url=${encodeURIComponent(url)}`
-        const data = await fetchJson(api)
-
-        await conn.sendMessage(from, {
-          video: { url: data.data.url },
-          mimetype: 'video/mp4',
-          fileName: `${data.data.title}.mp4`
-        }, { quoted: m })
-      }
-
-      await conn.sendMessage(from, {
-        react: { text: '✅', key: m.key }
+      await conn.sendMessage(chatId, {
+        react: { text: "✅", key: msg.key }
       })
+
     } catch (e) {
       console.error(e)
-      await conn.sendMessage(from, {
-        text: '❌ Error al descargar.'
-      }, { quoted: m })
+      await conn.sendMessage(chatId, {
+        text: "❌ Error al descargar"
+      }, { quoted: msg })
     }
 
     return
   }
 
-  // ========= BÚSQUEDA =========
   if (!input) {
-    return conn.sendMessage(from, {
+    return conn.sendMessage(chatId, {
       text: `✳️ Usa:\n${usedPrefix}${command} <nombre de canción>\nEj:\n${usedPrefix}${command} Lemon Tree`
-    }, { quoted: m })
+    }, { quoted: msg })
   }
 
-  await conn.sendMessage(from, {
-    react: { text: '🕒', key: m.key }
+  await conn.sendMessage(chatId, {
+    react: { text: "🕒", key: msg.key }
   })
 
   try {
     const search = await yts(input)
-    const video = search?.videos?.[0]
-    if (!video) throw 'Sin resultados'
+    if (!search?.videos?.length)
+      throw new Error("Sin resultados")
 
-    const durationSec = parseDurationToSeconds(video.seconds || video.timestamp)
-    if (durationSec && durationSec > MAX_SECONDS) {
-      return conn.sendMessage(from, {
-        text: '❌ El contenido supera el límite permitido.'
-      }, { quoted: m })
-    }
+    const video = search.videos[0]
 
     const caption =
 `⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${video.title}
-⭒ ִֶָ७ ꯭🎤˙⋆｡ - *𝙰𝚛𝚝𝚒𝚜𝚝𝚊:* ${video.author?.name || 'Desconocido'}
-⭒ ִֶָ७ ꯭🕑˙⋆｡ - *𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗:* ${video.timestamp || 'Desconocida'}
+⭒ ִֶָ७ ꯭🎤˙⋆｡ - *𝙰𝚛𝚝𝚒𝚜𝚝𝚊:* ${video.author?.name || "Desconocido"}
+⭒ ִֶָ७ ꯭🕑˙⋆｡ - *𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗:* ${video.timestamp || "Desconocida"}
 
 Selecciona el formato 👇
+
+⇆‌ ㅤ◁ㅤ❚❚ㅤ▷ㅤ↻
+
+> \`\`\`© Powered by Angel.xyz\`\`\`
 `
 
-    await conn.sendMessage(from, {
+    const buttons = [
+      {
+        buttonId: `.play audio|${video.url}`,
+        buttonText: { displayText: "🎵 Audio" },
+        type: 1
+      },
+      {
+        buttonId: `.play video|${video.url}`,
+        buttonText: { displayText: "🎬 Video" },
+        type: 1
+      }
+    ]
+
+    await conn.sendMessage(chatId, {
       image: { url: video.thumbnail },
       caption,
-      buttons: [
-        {
-          buttonId: `${usedPrefix}${command} audio|${video.url}`,
-          buttonText: { displayText: '🎵 Audio' },
-          type: 1
-        },
-        {
-          buttonId: `${usedPrefix}${command} video|${video.url}`,
-          buttonText: { displayText: '🎬 Video' },
-          type: 1
-        }
-      ],
+      buttons,
       headerType: 4
-    }, { quoted: m })
+    }, { quoted: msg })
 
-  } catch (e) {
-    console.error(e)
-    await conn.sendMessage(from, {
-      text: '❌ Error interno.'
-    }, { quoted: m })
+    await conn.sendMessage(chatId, {
+      react: { text: "✅", key: msg.key }
+    })
+
+  } catch (err) {
+    console.error("play error:", err)
+    await conn.sendMessage(chatId, {
+      text: `❌ Error: ${err?.message || "Fallo interno"}`
+    }, { quoted: msg })
   }
 }
 
-handler.help = ['play <texto>']
-handler.tags = ['multimedia']
-handler.command = ['play']
+handler.command = ["play", "ytplay"]
+handler.help = ["play <texto>"]
+handler.tags = ["descargas"]
 
 export default handler
