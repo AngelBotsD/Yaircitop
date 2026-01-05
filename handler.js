@@ -55,10 +55,10 @@ export async function handler(chatUpdate) {
 
   if (m?.key?.id) {
     if (!m.fromButton) {
-  const prev = global.handledMessages.get(m.key.id)
-  if (prev && Date.now() - prev < 120000) return
-  global.handledMessages.set(m.key.id, Date.now())
-}
+      const prev = global.handledMessages.get(m.key.id)
+      if (prev && Date.now() - prev < 120000) return
+      global.handledMessages.set(m.key.id, Date.now())
+    }
     global.handledMessages.set(m.key.id, Date.now())
   }
 
@@ -75,181 +75,108 @@ export async function handler(chatUpdate) {
     await global.loadDatabase()
 
   try {
-  m = smsg(this, m) || m
-  if (!m) return
+    m = smsg(this, m) || m
+    if (!m) return
 
-  m.exp = 0
-  if (typeof m.text !== "string") m.text = ""
+    m.exp = 0
+    if (typeof m.text !== "string") m.text = ""
 
-  const user = global.db.data.users[m.sender] ||= {
-    name: m.name,
-    exp: 0,
-    level: 0,
-    health: 100,
-    genre: "",
-    birth: "",
-    marry: "",
-    description: "",
-    packstickers: null,
-    premium: false,
-    premiumTime: 0,
-    banned: false,
-    bannedReason: "",
-    commands: 0,
-    afk: -1,
-    afkReason: "",
-    warn: 0
-  }
-
-  const chat = global.db.data.chats[m.chat] ||= {
-    isBanned: false,
-    isMute: false,
-    welcome: false,
-    sWelcome: "",
-    sBye: "",
-    detect: true,
-    primaryBot: null,
-    modoadmin: false,
-    antiLink: true,
-    nsfw: false
-  }
-
-  const settings = global.db.data.settings[this.user.jid] ||= {
-    self: false,
-    restrict: true,
-    antiPrivate: false,
-    gponly: false
-  }
-
-  const isROwner = isOwnerBySender(m.sender)
-  const isOwner = isROwner || m.fromMe
-  const isPrems = isROwner || user.premium === true
-  const isOwners = isROwner || m.sender === this.user.jid
-
-  if (settings.self && !isOwners) return
-  if (m.isBaileys && !m.fromButton) return
-
-  let groupMetadata = {}
-  let participants = []
-  let userGroup = {}
-  let botGroup = {}
-  let isRAdmin = false
-  let isAdmin = false
-  let isBotAdmin = false
-
-  if (m.isGroup) {
-    let cached = global.groupMetaCache.get(m.chat)
-    if (!cached || Date.now() - cached.ts > 15000) {
-      const meta = await this.groupMetadata(m.chat)
-      cached = { ts: Date.now(), meta }
-      global.groupMetaCache.set(m.chat, cached)
+    const user = global.db.data.users[m.sender] ||= {
+      name: m.name,
+      exp: 0,
+      level: 0,
+      health: 100,
+      genre: "",
+      birth: "",
+      marry: "",
+      description: "",
+      packstickers: null,
+      premium: false,
+      premiumTime: 0,
+      banned: false,
+      bannedReason: "",
+      commands: 0,
+      afk: -1,
+      afkReason: "",
+      warn: 0
     }
 
-    groupMetadata = cached.meta
-    participants = groupMetadata.participants || []
-
-    const userParticipant = participants.find(p => p.id === m.sender || p.jid === m.sender)
-    const botParticipant = participants.find(p => p.id === this.user.jid || p.jid === this.user.jid)
-
-    isRAdmin =
-      userParticipant?.admin === "superadmin" ||
-      DIGITS(m.sender) === DIGITS(groupMetadata.owner)
-
-    isAdmin = isRAdmin || userParticipant?.admin === "admin"
-    isBotAdmin =
-      botParticipant?.admin === "admin" ||
-      botParticipant?.admin === "superadmin"
-
-    userGroup = userParticipant || {}
-    botGroup = botParticipant || {}
-  }
-
-  const ___dirname = path.join(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "plugins"
-  )
-
-  for (const name in global.plugins) {
-    const plugin = global.plugins[name]
-    if (!plugin || plugin.disabled) continue
-
-    const __filename = join(___dirname, name)
-
-    if (typeof plugin.all === "function") {
-      try {
-        await plugin.all.call(this, m, {
-          chatUpdate,
-          __dirname: ___dirname,
-          __filename,
-          user,
-          chat,
-          settings
-        })
-      } catch {}
+    const chat = global.db.data.chats[m.chat] ||= {
+      isBanned: false,
+      isMute: false,
+      welcome: false,
+      sWelcome: "",
+      sBye: "",
+      detect: true,
+      primaryBot: null,
+      modoadmin: false,
+      antiLink: true,
+      nsfw: false
     }
 
-    let usedPrefix = ""
+    const settings = global.db.data.settings[this.user.jid] ||= {
+      self: false,
+      restrict: true,
+      antiPrivate: false,
+      gponly: false
+    }
 
-if (plugin.customPrefix) {
-  if (plugin.customPrefix instanceof RegExp) {
-    const match = m.text.match(plugin.customPrefix)
-    if (!match) continue
-    usedPrefix = match[0]
-  } else if (typeof plugin.customPrefix === "string") {
-    if (!m.text.startsWith(plugin.customPrefix)) continue
-    usedPrefix = plugin.customPrefix
-  }
-} else {
-  const prefixes = Array.isArray(global.prefixes)
-    ? global.prefixes
-    : [global.prefix || "."]
+    const isROwner = isOwnerBySender(m.sender)
+    const isOwner = isROwner || m.fromMe
+    const isPrems = isROwner || user.premium === true
+    const isOwners = isROwner || m.sender === this.user.jid
 
-  const found = prefixes.find(p =>
-    typeof p === "string"
-      ? m.text.startsWith(p)
-      : p instanceof RegExp
-        ? p.test(m.text)
-        : false
-  )
-  if (!found) continue
+    if (settings.self && !isOwners) return
+    if (m.isBaileys && !m.fromButton) return
 
-  usedPrefix =
-    found instanceof RegExp
-      ? m.text.match(found)?.[0] || ""
-      : found
-}
+    let groupMetadata = {}
+    let participants = []
+    let userGroup = {}
+    let botGroup = {}
+    let isRAdmin = false
+    let isAdmin = false
+    let isBotAdmin = false
 
-const noPrefix = m.text.slice(usedPrefix.length)
-    let [command, ...args] = noPrefix.trim().split(/\s+/)
-    command = (command || "").toLowerCase()
+    if (m.isGroup) {
+      let cached = global.groupMetaCache.get(m.chat)
+      if (!cached || Date.now() - cached.ts > 15000) {
+        const meta = await this.groupMetadata(m.chat)
+        cached = { ts: Date.now(), meta }
+        global.groupMetaCache.set(m.chat, cached)
+      }
 
-    if (!plugin.command) continue
+      groupMetadata = cached.meta
+      participants = groupMetadata.participants || []
 
-    const isAccept =
-      plugin.command instanceof RegExp
-        ? plugin.command.test(command)
-        : Array.isArray(plugin.command)
-          ? plugin.command.includes(command)
-          : plugin.command === command
+      const userParticipant = participants.find(p => p.id === m.sender || p.jid === m.sender)
+      const botParticipant = participants.find(p => p.id === this.user.jid || p.jid === this.user.jid)
 
-    if (!isAccept) continue
+      isRAdmin =
+        userParticipant?.admin === "superadmin" ||
+        DIGITS(m.sender) === DIGITS(groupMetadata.owner)
 
-    m.isCommand = true
-    user.commands++
+      isAdmin = isRAdmin || userParticipant?.admin === "admin"
+      isBotAdmin =
+        botParticipant?.admin === "admin" ||
+        botParticipant?.admin === "superadmin"
 
-    if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
-    if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
-    if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
-    if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
-    if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
-    if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
-    if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
-    if (plugin.private && m.isGroup) { fail("private", m, this); continue }
+      userGroup = userParticipant || {}
+      botGroup = botParticipant || {}
+    }
 
-    await plugin.call(this, m, {
-      args,
-      command,
+    const ___dirname = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "plugins"
+    )
+
+    const extra = {
       conn: this,
+      chatUpdate,
+      __dirname: ___dirname,
+      __filename: "",
+      user,
+      chat,
+      settings,
       participants,
       groupMetadata,
       userGroup,
@@ -258,16 +185,104 @@ const noPrefix = m.text.slice(usedPrefix.length)
       isOwner,
       isAdmin,
       isBotAdmin,
-      isPrems,
-      chat,
-      user,
-      settings
-    })
+      isPrems
+    }
 
-    break
-  }
-} catch (err) {
-  console.error(err)
+    for (const name in global.plugins) {
+      const plugin = global.plugins[name]
+      if (!plugin || plugin.disabled) continue
+
+      const __filename = join(___dirname, name)
+      extra.__filename = __filename
+
+      if (typeof plugin.all === "function") {
+        await plugin.all.call(this, m, extra)
+      }
+
+      if (typeof plugin.before === "function") {
+        await plugin.before.call(this, m, extra)
+      }
+
+      let usedPrefix = ""
+
+      if (plugin.customPrefix) {
+        if (plugin.customPrefix instanceof RegExp) {
+          const match = m.text.match(plugin.customPrefix)
+          if (!match) continue
+          usedPrefix = match[0]
+        } else if (typeof plugin.customPrefix === "string") {
+          if (!m.text.startsWith(plugin.customPrefix)) continue
+          usedPrefix = plugin.customPrefix
+        }
+      } else {
+        const prefixes = Array.isArray(global.prefixes)
+          ? global.prefixes
+          : [global.prefix || "."]
+
+        const found = prefixes.find(p =>
+          typeof p === "string"
+            ? m.text.startsWith(p)
+            : p instanceof RegExp
+              ? p.test(m.text)
+              : false
+        )
+        if (!found) continue
+
+        usedPrefix =
+          found instanceof RegExp
+            ? m.text.match(found)?.[0] || ""
+            : found
+      }
+
+      const noPrefix = m.text.slice(usedPrefix.length)
+      let [command, ...args] = noPrefix.trim().split(/\s+/)
+      command = (command || "").toLowerCase()
+
+      if (!plugin.command) continue
+
+      const isAccept =
+        plugin.command instanceof RegExp
+          ? plugin.command.test(command)
+          : Array.isArray(plugin.command)
+            ? plugin.command.includes(command)
+            : plugin.command === command
+
+      if (!isAccept) continue
+
+      m.isCommand = true
+      user.commands++
+
+      if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
+      if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
+      if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
+      if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
+      if (plugin.group && !m.isGroup) { fail("group", m, this); continue }
+      if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue }
+      if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
+      if (plugin.private && m.isGroup) { fail("private", m, this); continue }
+
+      await plugin.call(this, m, {
+        args,
+        command,
+        conn: this,
+        participants,
+        groupMetadata,
+        userGroup,
+        botGroup,
+        isROwner,
+        isOwner,
+        isAdmin,
+        isBotAdmin,
+        isPrems,
+        chat,
+        user,
+        settings
+      })
+
+      break
+    }
+  } catch (err) {
+    console.error(err)
   }
 }
 
