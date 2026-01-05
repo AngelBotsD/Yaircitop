@@ -1,8 +1,8 @@
 {
-"name":"Angel Bot",
+"name":"Yaxrcitop Bot",
 "version":"1.0.0-personalizado",
 "description":"Bot de WhatsApp con Baileys",
-"author":"Angel",
+"author":"Yaircitop",
 "type":"module",
 "main":"index.js",
 "scripts":{
