@@ -1,50 +1,44 @@
 import axios from "axios"
 import yts from "yt-search"
 
-const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play" }) => {
+const API_BASE = (global.APIs.may || "").replace(/\/+$/, "")
+const API_KEY = global.APIKeys.may || ""
+
+const handler = async (
+  msg,
+  { conn, args = [], usedPrefix = ".", command = "play" }
+) => {
+
   const chatId = msg.key.remoteJid
   const text = args.join(" ").trim()
   const input = String(text || "").trim()
-  const apikey = "Angxlllll"
 
   if (input.startsWith("audio|") || input.startsWith("video|")) {
     const [type, url] = input.split("|")
 
     await conn.sendMessage(chatId, {
-      react: { text: type === "audio" ? "🎵" : "🎬", key: msg.key }
+      react: {
+        text: type === "audio" ? "🎵" : "🎬",
+        key: msg.key
+      }
     })
 
     try {
-      const endpoint =
-        type === "audio"
-          ? "https://api-adonix.ultraplus.click/download/ytaudio"
-          : "https://api-adonix.ultraplus.click/download/ytvideo"
+      const dlType = type === "audio" ? "Mp3" : "Mp4"
 
-      const { data } = await axios.get(endpoint, {
-        params: { apikey, url },
-        timeout: 900000,
-        headers: { Accept: "application/json" },
-        validateStatus: () => true
-      })
+      const { data } = await axios.get(
+        `${API_BASE}/ytdl?url=${encodeURIComponent(url)}&type=${dlType}&apikey=${API_KEY}`
+      )
 
-      if (!data || typeof data !== "object")
-        throw new Error("Respuesta inválida de la API")
-
-      if (data.status !== true)
-        throw new Error(data?.message || data?.error || "status=false")
-
-      if (!data?.data?.url || !data?.data?.title)
-        throw new Error("Respuesta incompleta de la API")
-
-      const title = data.data.title.replace(/[\\/:*?"<>|]/g, "").trim()
+      if (!data?.status || !data.result?.url)
+        throw new Error("No se pudo obtener el archivo")
 
       if (type === "audio") {
         await conn.sendMessage(
           chatId,
           {
-            audio: { url: data.data.url },
+            audio: { url: data.result.url },
             mimetype: "audio/mpeg",
-            fileName: `${title}.mp3`,
             ptt: false
           },
           { quoted: msg }
@@ -53,9 +47,8 @@ const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play
         await conn.sendMessage(
           chatId,
           {
-            video: { url: data.data.url },
-            mimetype: "video/mp4",
-            fileName: `${title}.mp4`
+            video: { url: data.result.url },
+            mimetype: "video/mp4"
           },
           { quoted: msg }
         )
@@ -64,6 +57,7 @@ const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play
       await conn.sendMessage(chatId, {
         react: { text: "✅", key: msg.key }
       })
+
     } catch (e) {
       console.error(e)
       await conn.sendMessage(
@@ -72,6 +66,7 @@ const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play
         { quoted: msg }
       )
     }
+
     return
   }
 
@@ -79,7 +74,10 @@ const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play
     return conn.sendMessage(
       chatId,
       {
-        text: `✳️ Usa:\n${usedPrefix}${command} <nombre de canción>\nEj:\n${usedPrefix}${command} Lemon Tree`
+        text: `✳️ Usa:
+${usedPrefix}${command} <nombre de canción>
+Ej:
+${usedPrefix}${command} Lemon Tree`
       },
       { quoted: msg }
     )
@@ -96,10 +94,9 @@ const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play
 
     const video = search.videos[0]
 
-    const caption =
-`⭒ ִֶָ७ ꯭🎵˙⋆｡ - *𝚃𝚒́𝚝𝚞𝚕𝚘:* ${video.title}
-⭒ ִֶָ७ ꯭🎤˙⋆｡ - *𝙰𝚛𝚝𝚒𝚜𝚝𝚊:* ${video.author?.name || "Desconocido"}
-⭒ ִֶָ७ ꯭🕑˙⋆｡ - *𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗:* ${video.timestamp || "Desconocida"}
+    const caption = `⭒ ִֶָ७ ꯭🎵˙⋆｡ - 𝚃𝚒́𝚝𝚞𝚕𝚘: ${video.title}
+⭒ ִֶָ७ ꯭🎤˙⋆｡ - 𝙰𝚛𝚝𝚒𝚜𝚝𝚊: ${video.author?.name || "Desconocido"}
+⭒ ִֶָ७ ꯭🕑˙⋆｡ - 𝙳𝚞𝚛𝚊𝚌𝚒ó𝚗: ${video.timestamp || "Desconocida"}
 
 Selecciona el formato 👇
 
@@ -108,23 +105,25 @@ Selecciona el formato 👇
 > \`\`\`© Powered by Angel.xyz\`\`\`
 `
 
+    const buttons = [
+      {
+        buttonId: `.play audio|${video.url}`,
+        buttonText: { displayText: "🎵 Audio" },
+        type: 1
+      },
+      {
+        buttonId: `.play video|${video.url}`,
+        buttonText: { displayText: "🎬 Video" },
+        type: 1
+      }
+    ]
+
     await conn.sendMessage(
       chatId,
       {
         image: { url: video.thumbnail },
         caption,
-        buttons: [
-          {
-            buttonId: `.play audio|${video.url}`,
-            buttonText: { displayText: "🎵 Audio" },
-            type: 1
-          },
-          {
-            buttonId: `.play video|${video.url}`,
-            buttonText: { displayText: "🎬 Video" },
-            type: 1
-          }
-        ],
+        buttons,
         headerType: 4
       },
       { quoted: msg }
@@ -133,11 +132,14 @@ Selecciona el formato 👇
     await conn.sendMessage(chatId, {
       react: { text: "✅", key: msg.key }
     })
+
   } catch (err) {
     console.error("play error:", err)
     await conn.sendMessage(
       chatId,
-      { text: `❌ Error: ${err?.message || "Fallo interno"}` },
+      {
+        text: `❌ Error: ${err?.message || "Fallo interno"}`
+      },
       { quoted: msg }
     )
   }
