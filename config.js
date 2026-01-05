@@ -15,11 +15,11 @@ global.author = '𝖡𝗈𝗍𝗌𝗂𝗍𝗈 𝖽𝖾 𝖸𝖺𝗑𝗋𝖼𝗂�
 global.sessions = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈𝖡𝗈𝗍'
 
 global.APIs = {
-may: 'https://api-adonix.ultraplus.click'
+may: 'https://api.soymaycol.icu'
 }
 
 global.APIKeys = {
-may: 'Angxlllll'
+may: 'may-e89378ce'
 }
 
 const file = fileURLToPath(import.meta.url)
