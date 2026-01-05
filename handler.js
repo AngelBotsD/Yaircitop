@@ -54,8 +54,11 @@ export async function handler(chatUpdate) {
   if (!m) return
 
   if (m?.key?.id) {
-    const prev = global.handledMessages.get(m.key.id)
-    if (prev && Date.now() - prev < 120000) return
+    if (!m.fromButton) {
+  const prev = global.handledMessages.get(m.key.id)
+  if (prev && Date.now() - prev < 120000) return
+  global.handledMessages.set(m.key.id, Date.now())
+}
     global.handledMessages.set(m.key.id, Date.now())
   }
 
