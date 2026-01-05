@@ -11,7 +11,7 @@ global.owner = [
 
 global.namebot = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
 global.botname = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
-global.banner = 'https://files.catbox.moe/4k94dp.jpg'
+global.banner = 'https://files.catbox.moe/9yuy4n.jpg'
 global.packname = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
 global.author = '𝖡𝗈𝗍𝗌𝗂𝗍𝗈 𝖽𝖾 𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈'
 global.sessions = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈𝖡𝗈𝗍'
