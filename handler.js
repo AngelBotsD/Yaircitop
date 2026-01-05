@@ -21,8 +21,8 @@ function isOwnerBySender(sender) {
 
 global.beforeAll = async function (m, { conn }) {
   try {
-    const nombreBot = global.namebot || "𝖠𝗇𝗀𝖾𝗅 𝖡𝗈𝗍"
-    const bannerFinal = "https://files.catbox.moe/izivd5.jpg"
+    const nombreBot = global.namebot || "𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍"
+    const bannerFinal = "https://files.catbox.moe/9yuy4n.jpg"
 
     const canales = [global.idcanal, global.idcanal2].filter(Boolean)
     const newsletterJidRandom = canales.length
