@@ -3,10 +3,8 @@ import chalk from 'chalk'
 import { fileURLToPath } from 'url'
 
 global.owner = [
-'5714222810', 
-'5212213479743',
-'5215542690330', 
-'447894206349'
+'5216184459748', 
+'5714222810'
 ] 
 
 global.namebot = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
