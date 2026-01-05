@@ -9,25 +9,20 @@ global.owner = [
 '447894206349'
 ] 
  
-global.mods = []
-global.prems = []
-
 global.emoji = '📎'
 global.emoji2 = '🏞️'
-global.namebot = '𝖠𝗇𝗀𝖾𝗅 𝖡𝗈𝗍'
-global.botname = '𝖠𝗇𝗀𝖾𝗅 𝖡𝗈𝗍'
+global.namebot = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
+global.botname = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
 global.banner = 'https://files.catbox.moe/4k94dp.jpg'
-global.packname = '𝖠𝗇𝗀𝖾𝗅 𝖡𝗈𝗍'
-global.author = '𝖣𝖾𝗌𝖺𝗋𝗅𝗅𝖺𝖽𝗈 𝗉𝗈𝗋 𝖠𝗇𝗀𝖾𝗅'
-global.sessions = '𝖠𝗇𝗀𝖾𝗅𝖡𝗈𝗍'
+global.packname = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
+global.author = '𝖡𝗈𝗍𝗌𝗂𝗍𝗈 𝖽𝖾 𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈'
+global.sessions = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈𝖡𝗈𝗍'
 
 global.APIs = {
-sky: 'https://api-sky.ultraplus.click',
 may: 'https://api-adonix.ultraplus.click'
 }
 
 global.APIKeys = {
-sky: 'Angxlllll',
 may: 'Angxlllll'
 }
 
