@@ -96,6 +96,7 @@ export async function all(m, chatUpdate) {
     }
   )
 
+  messages.fromButton = true
   messages.key.fromMe = areJidsSameUser(m.sender, this.user.id)
   messages.key.id = m.key.id
   messages.pushName = m.name
