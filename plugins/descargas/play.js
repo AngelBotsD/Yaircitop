@@ -5,8 +5,8 @@ const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play
   const chatId = msg.key.remoteJid
   const text = args.join(" ").trim()
   const input = String(text || "").trim()
+  const apikey = "Angxlllll"
 
-  /* ================= BOTONES ================= */
   if (input.startsWith("audio|") || input.startsWith("video|")) {
     const [type, url] = input.split("|")
 
@@ -15,69 +15,47 @@ const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play
     })
 
     try {
-      const apikey = globalThis?.apikey
-      if (!apikey) throw new Error("Falta globalThis.apikey")
+      const endpoint =
+        type === "audio"
+          ? "https://api-adonix.ultraplus.click/download/ytaudio"
+          : "https://api-adonix.ultraplus.click/download/ytvideo"
 
-      /* ===== AUDIO (MÉTODO ADONIX) ===== */
+      const { data } = await axios.get(endpoint, {
+        params: { apikey, url },
+        timeout: 900000,
+        headers: { Accept: "application/json" },
+        validateStatus: () => true
+      })
+
+      if (!data || typeof data !== "object")
+        throw new Error("Respuesta inválida de la API")
+
+      if (data.status !== true)
+        throw new Error(data?.message || data?.error || "status=false")
+
+      if (!data?.data?.url || !data?.data?.title)
+        throw new Error("Respuesta incompleta de la API")
+
+      const title = data.data.title.replace(/[\\/:*?"<>|]/g, "").trim()
+
       if (type === "audio") {
-        const { data } = await axios.get(
-          "https://api-adonix.ultraplus.click/download/ytaudio",
-          {
-            params: { apikey, url },
-            timeout: 900000,
-            headers: { Accept: "application/json" },
-            validateStatus: () => true
-          }
-        )
-
-        if (!data || typeof data !== "object")
-          throw new Error("Respuesta inválida de la API")
-
-        if (data.status !== true)
-          throw new Error(data?.message || data?.error || "status=false")
-
-        if (!data?.data?.url || !data?.data?.title)
-          throw new Error("Respuesta incompleta de la API")
-
         await conn.sendMessage(
           chatId,
           {
             audio: { url: data.data.url },
             mimetype: "audio/mpeg",
-            fileName: `${data.data.title}.mp3`,
+            fileName: `${title}.mp3`,
             ptt: false
           },
           { quoted: msg }
         )
-      }
-
-      /* ===== VIDEO (MÉTODO ADONIX) ===== */
-      if (type === "video") {
-        const { data } = await axios.get(
-          "https://api-adonix.ultraplus.click/download/ytvideo",
-          {
-            params: { apikey, url },
-            timeout: 900000,
-            headers: { Accept: "application/json" },
-            validateStatus: () => true
-          }
-        )
-
-        if (!data || typeof data !== "object")
-          throw new Error("Respuesta inválida de la API")
-
-        if (data.status !== true)
-          throw new Error(data?.message || data?.error || "status=false")
-
-        if (!data?.data?.url || !data?.data?.title)
-          throw new Error("Respuesta incompleta de la API")
-
+      } else {
         await conn.sendMessage(
           chatId,
           {
             video: { url: data.data.url },
             mimetype: "video/mp4",
-            fileName: `${data.data.title}.mp4`
+            fileName: `${title}.mp4`
           },
           { quoted: msg }
         )
@@ -97,7 +75,6 @@ const handler = async (msg, { conn, args = [], usedPrefix = ".", command = "play
     return
   }
 
-  /* ================= BÚSQUEDA ================= */
   if (!input) {
     return conn.sendMessage(
       chatId,
