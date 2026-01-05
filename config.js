@@ -8,9 +8,7 @@ global.owner = [
 '5215542690330', 
 '447894206349'
 ] 
- 
-global.emoji = '📎'
-global.emoji2 = '🏞️'
+
 global.namebot = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
 global.botname = '𝖸𝖺𝗑𝗋𝖼𝗂𝗍𝗈 𝖡𝗈𝗍'
 global.banner = 'https://files.catbox.moe/4k94dp.jpg'
